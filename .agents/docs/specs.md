@@ -1,0 +1,213 @@
+# Product And Technical Specs
+
+Last reviewed: 2026-05-10
+
+## Product Spec
+
+The app should provide a focused four-stem rehearsal and inspection surface.
+
+Core user capabilities:
+
+- Load the song catalog from a static manifest.
+- Select a song from a dropdown.
+- Play, pause, stop, and seek the loaded song.
+- Keep all stems synchronized during playback and seeking.
+- View one waveform per stem.
+- Seek by interacting with the global transport or a stem waveform.
+- Mute or solo each stem.
+- Set each stem volume from 0% to 100%.
+- View song key, BPM, time signature, chords, notes, section markers, and lyrics.
+- Jump to song sections from the metadata panel.
+- See clear loading and error states when manifest, song, stem, or waveform loading fails.
+
+Non-goals in the current codebase:
+
+- User uploads.
+- Realtime recording.
+- Persistence of mix settings.
+- Authentication.
+- Server-side song management.
+- Partial-stem playback for incomplete songs.
+
+## Song Data Contract
+
+Songs are stored in `static/songs/<Folder>/`.
+
+Required folder contents:
+
+```text
+static/songs/<Folder>/
+  song.json
+  lyrics.md
+  <Folder>_bass.mp3 or <Song Title>_bass.mp3
+  <Folder>_drums.mp3 or <Song Title>_drums.mp3
+  <Folder>_vocals.mp3 or <Song Title>_vocals.mp3
+  <Folder>_other.mp3 or <Song Title>_other.mp3
+```
+
+Optional folder contents:
+
+```text
+static/songs/<Folder>/
+  <matching stem filename>.peaks.json
+```
+
+Required stems:
+
+- `bass`
+- `drums`
+- `vocals`
+- `other`
+
+The app display order is `vocals`, `drums`, `bass`, `other`.
+
+## `song.json` Shape
+
+```ts
+interface SongMetadata {
+  title: string;
+  artist: string;
+  key: string;
+  bpm: number;
+  timeSignature: string;
+  chords?: string;
+  notes?: string;
+  lyrics?: string;
+  sections?: Array<{
+    label: string;
+    start: number;
+    end?: number;
+  }>;
+}
+```
+
+Validation rules currently enforced by `scripts/validate-songs.ts`:
+
+- `title`, `artist`, `key`, `bpm`, and `timeSignature` are required.
+- `bpm` must be a number.
+- If `sections` is present, each section needs a `label` and numeric `start`.
+- `lyrics.md` must exist.
+- Empty `lyrics.md` is a warning, not an error.
+- Every required MP3 stem must exist and be non-empty.
+
+## `manifest.json` Shape
+
+The browser loads `/songs/manifest.json`.
+
+```ts
+interface SongManifest {
+  generatedAt: string;
+  songs: Array<{
+    id: string;
+    folder: string;
+    title: string;
+    artist: string;
+    bpm: number;
+    key: string;
+    timeSignature: string;
+    songJsonUrl: string;
+    lyricsUrl: string;
+    stems: {
+      bass: string;
+      drums: string;
+      vocals: string;
+      other: string;
+    };
+    peaks?: Partial<{
+      bass: string;
+      drums: string;
+      vocals: string;
+      other: string;
+    }>;
+  }>;
+}
+```
+
+Current manifest summary:
+
+- `generatedAt`: `2026-05-10T19:23:25.190Z`
+- Songs: 1
+- Song id: `GloryBox`
+- Stem URLs use URL-encoded spaces, for example `/songs/GloryBox/Glory%20Box_bass.mp3`
+
+Regenerate the manifest after adding or renaming song files:
+
+```bash
+npm run songs:manifest
+```
+
+## Peak File Shape
+
+Peak files are optional but preferred because they let WaveSurfer render without decoding the same MP3 for waveform display.
+
+```ts
+interface PeaksFile {
+  sampleRate: number;
+  samplesPerPixel: number;
+  peaks: number[];
+}
+```
+
+Generate peaks with:
+
+```bash
+npm run songs:peaks
+```
+
+This command requires `ffmpeg` on `PATH`.
+
+## Playback Spec
+
+- A song must define all four stems before loading.
+- All stems are fetched and decoded before the song is considered fully loaded.
+- Duration is the maximum duration across loaded stem buffers.
+- Play starts all loaded stems from one shared offset.
+- Pause stores the current position and stops current source nodes.
+- Stop resets position to `0`.
+- Seek clamps to the valid duration range.
+- Seeking while playing recreates source nodes from the new offset.
+- Volume is clamped from `0` to `1`.
+- Muted stems have effective gain `0`.
+- If any stem is soloed, all non-soloed stems have effective gain `0`.
+- Gain changes are ramped over a short interval.
+
+## Error And Loading Spec
+
+Expected UI states:
+
+- Manifest loading: "Loading song manifest..."
+- Empty catalog: "No songs were found in /songs/manifest.json."
+- App-level load failure: alert section with "Load error".
+- Stem loading: per-stem "Loading" state and waveform overlay.
+- Stem loaded: per-stem "Ready" state.
+- Stem failure: per-stem "Error" state and alert text.
+- Waveform failure: waveform overlay with local error text.
+
+Transport controls are disabled while a song is loading, before an engine snapshot exists, or when the engine has load errors.
+
+## Quality Bar
+
+Commands that should pass before handing off meaningful changes:
+
+```bash
+npm run check
+npm test
+npm run songs:validate
+npm run build
+```
+
+Current review status:
+
+- Type and Svelte diagnostics pass.
+- Unit tests pass.
+- Song validation passes.
+- Static build passes and writes the site to `build/`.
+
+## Open Risks And Follow-up Areas
+
+- The app decodes full MP3 stems into memory. Long songs or large catalogs may need streaming, lazy loading, or explicit memory budgeting.
+- The waveform component and audio engine can both fetch audio when peak files are missing, increasing network and decode work.
+- There is no end-to-end browser test that proves the rendered app loads the manifest and reaches a playable state.
+- The current song data is a synthetic demo, not a real catalog.
+- The song ingestion flow is script-based only.
+- The static directory contains `.DS_Store`, which should be removed before production deployment.

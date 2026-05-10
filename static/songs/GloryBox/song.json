@@ -1,0 +1,27 @@
+{
+  "title": "Glory Box",
+  "artist": "Synthetic Demo Band",
+  "key": "G minor",
+  "bpm": 82,
+  "timeSignature": "4/4",
+  "chords": "Intro: Gm | Gm | Eb | D\nVerse: Gm | Bb | Eb | D\nChorus: Eb | F | Gm | Gm",
+  "notes": "Generated sine and pulse stems for the technical spike. These files are only for proving synchronized four-stem playback.",
+  "sections": [
+    {
+      "label": "Intro",
+      "start": 0
+    },
+    {
+      "label": "Verse",
+      "start": 4
+    },
+    {
+      "label": "Chorus",
+      "start": 8
+    },
+    {
+      "label": "Outro",
+      "start": 12
+    }
+  ]
+}
