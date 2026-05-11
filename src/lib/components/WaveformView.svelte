@@ -24,115 +24,110 @@
     onSeek = () => {}
   }: Props = $props();
 
+  import type { Action } from 'svelte/action';
+
   let container = $state<HTMLDivElement | undefined>(undefined);
-  let wavesurfer: WaveSurfer | null = null;
   let localError = $state('');
 
   async function loadPeaks(nextPeaksUrl: string | undefined) {
-    if (!nextPeaksUrl) {
-      return undefined;
-    }
-
+    if (!nextPeaksUrl) return undefined;
     const response = await fetch(nextPeaksUrl);
-    if (!response.ok) {
-      throw new Error(`${nextPeaksUrl}: ${response.status} ${response.statusText}`);
-    }
-
+    if (!response.ok) throw new Error(`${nextPeaksUrl}: ${response.status} ${response.statusText}`);
     const payload = (await response.json()) as { peaks?: number[] };
     return payload.peaks ? [payload.peaks] : undefined;
   }
 
-  function destroyWaveform() {
-    wavesurfer?.destroy();
-    wavesurfer = null;
+  interface WaveformParams {
+    url: string;
+    peaksUrl: string | undefined;
+    duration: number;
+    position: number;
   }
 
-  async function createWaveform(
-    targetContainer: HTMLDivElement,
-    nextUrl: string,
-    nextPeaksUrl: string | undefined,
-    nextDuration: number
-  ) {
-    const [{ default: WaveSurferConstructor }, peaks] = await Promise.all([
-      import('wavesurfer.js'),
-      loadPeaks(nextPeaksUrl)
-    ]);
-
-    const nextWaveform = WaveSurferConstructor.create({
-      container: targetContainer,
-      height: 72,
-      normalize: true,
-      interact: true,
-      cursorWidth: 2,
-      cursorColor: '#111827',
-      waveColor: '#8fb7c7',
-      progressColor: '#0f766e',
-      barWidth: 2,
-      barGap: 2,
-      barRadius: 2,
-      url: peaks ? undefined : nextUrl,
-      peaks,
-      duration: peaks ? nextDuration : undefined
-    });
-
-    nextWaveform.on('interaction', (newTime: number) => {
-      onSeek(newTime);
-    });
-    nextWaveform.on('error', (message) => {
-      localError = String(message);
-    });
-
-    return nextWaveform;
-  }
-
-  $effect(() => {
-    const targetContainer = container;
-    const nextUrl = url;
-    const nextPeaksUrl = peaksUrl;
-    const nextDuration = duration;
-
-    if (!targetContainer || !nextUrl) {
-      destroyWaveform();
-      return;
-    }
-
+  const waveformAction: Action<HTMLDivElement, WaveformParams> = (node, params) => {
+    let wavesurfer: WaveSurfer | null = null;
     let cancelled = false;
-    destroyWaveform();
-    localError = '';
+    let currentParams = params;
 
-    void createWaveform(targetContainer, nextUrl, nextPeaksUrl, nextDuration)
-      .then((nextWaveform) => {
-        if (cancelled) {
-          nextWaveform.destroy();
-          return;
-        }
+    async function initWaveform(p: WaveformParams) {
+      if (!p.url) return;
+      
+      const [{ default: WaveSurferConstructor }, peaks] = await Promise.all([
+        import('wavesurfer.js'),
+        loadPeaks(p.peaksUrl)
+      ]);
 
-        wavesurfer = nextWaveform;
-        if (position > 0) {
-          wavesurfer.setTime(Math.min(position, duration || position));
-        }
-      })
-      .catch((createError) => {
-        if (!cancelled) {
-          localError = createError instanceof Error ? createError.message : String(createError);
-        }
+      if (cancelled) return;
+
+      const ws = WaveSurferConstructor.create({
+        container: node,
+        height: 72,
+        normalize: true,
+        interact: true,
+        cursorWidth: 2,
+        cursorColor: '#111827',
+        waveColor: '#8fb7c7',
+        progressColor: '#0f766e',
+        barWidth: 2,
+        barGap: 2,
+        barRadius: 2,
+        url: peaks ? undefined : p.url,
+        peaks,
+        duration: peaks ? p.duration : undefined
       });
 
-    return () => {
-      cancelled = true;
-      destroyWaveform();
-    };
-  });
+      ws.on('interaction', (newTime: number) => {
+        onSeek(newTime);
+      });
+      ws.on('error', (message) => {
+        localError = String(message);
+      });
 
-  $effect(() => {
-    if (wavesurfer && Math.abs(wavesurfer.getCurrentTime() - position) > 0.05) {
-      wavesurfer.setTime(Math.min(position, duration || position));
+      wavesurfer = ws;
+      
+      // Initial position sync
+      if (currentParams.position > 0) {
+        ws.setTime(Math.min(currentParams.position, currentParams.duration || currentParams.position));
+      }
     }
-  });
+
+    // Start initialization
+    void initWaveform(currentParams).catch((err) => {
+      if (!cancelled) localError = err instanceof Error ? err.message : String(err);
+    });
+
+    return {
+      update(newParams) {
+        const needsRecreate =
+          newParams.url !== currentParams.url ||
+          newParams.peaksUrl !== currentParams.peaksUrl ||
+          (currentParams.duration === 0 && newParams.duration > 0);
+
+        if (needsRecreate) {
+          wavesurfer?.destroy();
+          wavesurfer = null;
+          localError = '';
+          void initWaveform(newParams).catch((err) => {
+            if (!cancelled) localError = err instanceof Error ? err.message : String(err);
+          });
+        } else if (wavesurfer) {
+          if (Math.abs(wavesurfer.getCurrentTime() - newParams.position) > 0.05) {
+            wavesurfer.setTime(Math.min(newParams.position, newParams.duration || newParams.position));
+          }
+        }
+        currentParams = newParams;
+      },
+      destroy() {
+        cancelled = true;
+        wavesurfer?.destroy();
+        wavesurfer = null;
+      }
+    };
+  };
 </script>
 
 <div class="waveform-shell" aria-label={`${stemName} waveform`}>
-  <div bind:this={container} class="waveform-canvas"></div>
+  <div use:waveformAction={{ url, peaksUrl, duration, position }} class="waveform-canvas"></div>
 
   {#if loading}
     <div class="waveform-overlay" role="status">Loading waveform</div>

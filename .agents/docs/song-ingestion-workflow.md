@@ -72,8 +72,6 @@ Example:
   "key": "A minor",
   "bpm": 120,
   "timeSignature": "4/4",
-  "duration": "5:06",
-  "durationSeconds": 306,
   "chords": {
     "intro": {
       "progression": "Am | F | C | G"
@@ -106,23 +104,12 @@ Required fields:
 
 Optional fields:
 
-- `duration`
-- `durationSeconds`
 - `chords`
 - `notes`
 - `lyrics`
 - `sections`
 
 Section `start` values are seconds from the beginning of the song.
-
-Use `duration` for the readable total song time and `durationSeconds` for the same value in seconds only:
-
-```json
-{
-  "duration": "5:06",
-  "durationSeconds": 306
-}
-```
 
 The recommended `chords` format is a section object. The object keys are stable section ids, and each value describes the chord progression for that section:
 

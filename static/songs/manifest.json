@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-11T00:48:47.732Z",
+  "generatedAt": "2026-05-11T20:43:25.862Z",
   "songs": [
     {
       "id": "GloryBox",
@@ -22,6 +22,29 @@
         "drums": "/songs/GloryBox/GloryBox_drums.peaks.json",
         "vocals": "/songs/GloryBox/GloryBox_vocals.peaks.json",
         "other": "/songs/GloryBox/GloryBox_other.peaks.json"
+      }
+    },
+    {
+      "id": "SendHLTMe",
+      "folder": "SendHLTMe",
+      "title": "Send His Love to Me",
+      "artist": "PJ Harvey",
+      "bpm": 125,
+      "key": "C",
+      "timeSignature": "4/4",
+      "songJsonUrl": "/songs/SendHLTMe/song.json",
+      "lyricsUrl": "/songs/SendHLTMe/lyrics.md",
+      "stems": {
+        "bass": "/songs/SendHLTMe/SendHLTMe_bass.mp3",
+        "drums": "/songs/SendHLTMe/SendHLTMe_drums.mp3",
+        "vocals": "/songs/SendHLTMe/SendHLTMe_vocals.mp3",
+        "other": "/songs/SendHLTMe/SendHLTMe_other.mp3"
+      },
+      "peaks": {
+        "bass": "/songs/SendHLTMe/SendHLTMe_bass.peaks.json",
+        "drums": "/songs/SendHLTMe/SendHLTMe_drums.peaks.json",
+        "vocals": "/songs/SendHLTMe/SendHLTMe_vocals.peaks.json",
+        "other": "/songs/SendHLTMe/SendHLTMe_other.peaks.json"
       }
     }
   ]

@@ -182,7 +182,7 @@
 
       <aside class="info-stack" aria-label="Song information">
         {#if songBundle}
-          <SongInfoPanel metadata={songBundle.metadata} onSeek={seek} />
+          <SongInfoPanel metadata={songBundle.metadata} engineDuration={engineSnapshot?.duration} onSeek={seek} />
           <LyricsViewer lyrics={songBundle.lyricsMarkdown || songBundle.metadata.lyrics || ''} />
         {:else}
           <section class="panel">Loading song information...</section>

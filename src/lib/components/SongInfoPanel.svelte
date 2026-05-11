@@ -4,14 +4,21 @@
 
   type Props = {
     metadata: SongMetadata;
+    engineDuration?: number;
     onSeek?: (time: number) => void;
   };
 
-  let { metadata, onSeek = () => {} }: Props = $props();
+  let { metadata, engineDuration = 0, onSeek = () => {} }: Props = $props();
 
   let chordText = $derived(formatChords(metadata.chords));
-  let durationText = $derived(formatMetadataDuration(metadata));
-  let durationSecondsText = $derived(formatDurationSeconds(metadata.durationSeconds));
+  let durationText = $derived(metadata.duration || (engineDuration > 0 ? formatTime(engineDuration) : ''));
+  let durationSecondsText = $derived(
+    metadata.durationSeconds !== undefined
+      ? formatDurationSeconds(metadata.durationSeconds)
+      : engineDuration > 0
+        ? formatDurationSeconds(engineDuration)
+        : ''
+  );
 </script>
 
 <section class="panel song-info" aria-labelledby="song-info-title">
