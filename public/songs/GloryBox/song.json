@@ -1,0 +1,60 @@
+{
+  "title": "Glory Box",
+  "artist": "Portishead",
+  "key": "D#m",
+  "bpm": 82,
+  "timeSignature": "4/4",
+  "duration": "3:32",
+  "durationSeconds": 306,
+  "chords": {
+    "intro": {
+      "progression": " Dm | Dm/C | Bm7b5 | Bbmaj7"
+    },
+    "verse": {
+      "label": "Verse ",
+      "progression": "Dm | Dm/C | Bm7b5 | Bbmaj7"
+    },
+    "chorus": {
+      "progression": "Dm | Dm/C | Bm7b5 | Bbmaj7"
+    }
+  },
+  "notes": "Glory Box is based on a sample from Isaac Hayes'-'Ike's rap II'.",
+  "sections": [
+    {
+      "label": "Verse 1",
+      "start": 15
+    },
+    {
+      "label": "Chorus",
+      "start": 40
+    },
+    {
+      "label": "Verse 2",
+      "start": 71
+    },
+    {
+      "label": "Chorus",
+      "start": 96
+    },
+    {
+      "label": "Guitar Solo",
+      "start": 127
+    },
+    {
+      "label": "Verse 3",
+      "start": 144
+    },
+    {
+      "label": "Bridge",
+      "start": 176
+    },
+     {
+      "label": "Break",
+      "start": 184
+    },
+    {
+      "label": "Outro",
+      "start": 199
+    }
+  ]
+}

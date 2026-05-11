@@ -1,0 +1,28 @@
+{
+  "generatedAt": "2026-05-11T00:48:47.732Z",
+  "songs": [
+    {
+      "id": "GloryBox",
+      "folder": "GloryBox",
+      "title": "Glory Box",
+      "artist": "Portishead",
+      "bpm": 82,
+      "key": "D#m",
+      "timeSignature": "4/4",
+      "songJsonUrl": "/songs/GloryBox/song.json",
+      "lyricsUrl": "/songs/GloryBox/lyrics.md",
+      "stems": {
+        "bass": "/songs/GloryBox/GloryBox_bass.mp3",
+        "drums": "/songs/GloryBox/GloryBox_drums.mp3",
+        "vocals": "/songs/GloryBox/GloryBox_vocals.mp3",
+        "other": "/songs/GloryBox/GloryBox_other.mp3"
+      },
+      "peaks": {
+        "bass": "/songs/GloryBox/GloryBox_bass.peaks.json",
+        "drums": "/songs/GloryBox/GloryBox_drums.peaks.json",
+        "vocals": "/songs/GloryBox/GloryBox_vocals.peaks.json",
+        "other": "/songs/GloryBox/GloryBox_other.peaks.json"
+      }
+    }
+  ]
+}
