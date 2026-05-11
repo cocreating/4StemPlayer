@@ -86,14 +86,14 @@ export function formatChords(chords: SongChords | undefined) {
   return Object.entries(chords)
     .flatMap(([key, value]) => {
       if (typeof value === 'string') {
-        return [`${sectionLabel(key)}: ${value}`];
+        return [`${sectionLabel(key)} ${value}`];
       }
 
       if (!isChordSection(value)) {
         return [];
       }
 
-      const lines = [`${value.label ?? sectionLabel(key)}: ${value.progression}`];
+      const lines = [`${value.label ?? sectionLabel(key)} ${value.progression}`];
       if (value.notes) {
         lines.push(value.notes);
       }

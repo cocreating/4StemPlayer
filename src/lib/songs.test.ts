@@ -11,12 +11,16 @@ describe('formatChords', () => {
       })
     ).toBe(
       [
-        'Intro: Dm | Dm/C | Bm7b5 | Bbmaj7',
-        'Verse 1: Gm | Bb | Eb | D',
+        'Intro Dm | Dm/C | Bm7b5 | Bbmaj7',
+        'Verse 1 Gm | Bb | Eb | D',
         'Repeat twice.',
-        'Chorus: Eb | F | Gm | Gm'
+        'Chorus Eb | F | Gm | Gm'
       ].join('\n')
     );
+  });
+
+  it('formats compact chord sections without label separators', () => {
+    expect(formatChords({ intro: 'Am | F | C | G' })).toBe('Intro Am | F | C | G');
   });
 
   it('keeps legacy string chords readable', () => {

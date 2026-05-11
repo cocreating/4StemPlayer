@@ -1,4 +1,4 @@
-<script lang="ts">
+ <script lang="ts">
   import { STEM_ORDER, type AudioEngineSnapshot, type StemName } from '$lib/audio/AudioEngine';
   import type { SongManifestEntry } from '$lib/types';
   import StemRow from './StemRow.svelte';

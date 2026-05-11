@@ -34,15 +34,12 @@ From outside when you can
 Sow a little tenderness
 No matter if you cry
 
-[Chorus]
-Give me a reason to love you
-Give me a reason to be a woman
-I just wanna be a woman
-
 [Bridge]
-It's all I wanna be, is all, a woman
 For this is the beginning
 Of forever and ever
+
+[Break]
+...
 It's time to move over
 It's all I wanna be
 
@@ -51,6 +48,4 @@ I'm so tired of playing
 Playing with this bow and arrow
 Gonna give my heart away
 Leave it to the other girls to play
-For I've been a temptress too long
-Just
-Give me a reason to love you
+...

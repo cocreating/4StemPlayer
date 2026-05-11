@@ -34,7 +34,7 @@
     },
     {
       "label": "Chorus",
-      "start": 97
+      "start": 96
     },
     {
       "label": "Guitar Solo",
@@ -45,8 +45,12 @@
       "start": 144
     },
     {
+      "label": "Bridge",
+      "start": 176
+    },
+     {
       "label": "Break",
-      "start": 183
+      "start": 184
     },
     {
       "label": "Outro",
