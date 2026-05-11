@@ -10,16 +10,16 @@
   import SongInfoPanel from './SongInfoPanel.svelte';
   import LyricsViewer from './LyricsViewer.svelte';
 
-  let songs: SongManifestEntry[] = [];
-  let selectedSongId = '';
-  let selectedEntry: SongManifestEntry | null = null;
-  let songBundle: SongBundle | null = null;
+  let songs = $state<SongManifestEntry[]>([]);
+  let selectedSongId = $state('');
+  let selectedEntry = $state<SongManifestEntry | null>(null);
+  let songBundle = $state<SongBundle | null>(null);
   let engine: AudioEngine | null = null;
   let unsubscribe: (() => void) | null = null;
-  let engineSnapshot: AudioEngineSnapshot | null = null;
-  let manifestLoading = true;
-  let songLoading = false;
-  let appError = '';
+  let engineSnapshot = $state<AudioEngineSnapshot | null>(null);
+  let manifestLoading = $state(true);
+  let songLoading = $state(false);
+  let appError = $state('');
 
   async function boot() {
     manifestLoading = true;

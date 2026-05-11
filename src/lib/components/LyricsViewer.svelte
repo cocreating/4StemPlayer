@@ -1,5 +1,9 @@
 <script lang="ts">
-  export let lyrics = '';
+  type Props = {
+    lyrics?: string;
+  };
+
+  let { lyrics = '' }: Props = $props();
 </script>
 
 <section class="panel lyrics-panel" aria-labelledby="lyrics-title">

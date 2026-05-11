@@ -4,6 +4,8 @@
 
 **Goal:** Move the Svelte UI from legacy-compatible Svelte 4 syntax to idiomatic Svelte 5 runes syntax without changing player behavior.
 
+**Status:** Implemented on 2026-05-11 after checkpoint commit `f966585`. The legacy-surface inventory below records the pre-migration state that this plan addressed.
+
 **Architecture:** Migrate from the leaves inward so small, mostly-presentational components prove the syntax pattern before touching the stateful player shell. Keep the existing callback-prop architecture because it already matches Svelte 5 guidance better than `createEventDispatcher`. Treat `WaveformView.svelte` as the only high-risk component because it coordinates DOM binding, WaveSurfer lifecycle, async peak loading, and transport synchronization.
 
 **Tech Stack:** Svelte 5.55.5, SvelteKit 2.59.1, TypeScript 6.0.3, Vite 8, Vitest, svelte-check, WaveSurfer 7.

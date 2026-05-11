@@ -17,7 +17,7 @@ Last reviewed: 2026-05-11
 | Script runner | `tsx` | 4.21.0 |
 | Peak generation | `ffmpeg` | external CLI dependency |
 
-The app uses plain Svelte components and global CSS in `src/app.css`. There is no Tailwind, component library, server database, API backend, auth layer, or persistent client storage.
+The app uses plain Svelte components written with Svelte 5 runes syntax and global CSS in `src/app.css`. There is no Tailwind, component library, server database, API backend, auth layer, or persistent client storage.
 
 ## Runtime Shape
 
@@ -26,6 +26,7 @@ The SvelteKit route is static and prerendered:
 - `src/routes/+layout.ts` exports `prerender = true` and `ssr = true`.
 - `svelte.config.js` uses `adapter-static` with output in `build/`.
 - Browser-only audio work is started from Svelte lifecycle code in `AppShell.svelte`, so SSR only renders the shell and the client loads audio after mount.
+- Component props use `$props`, owned UI state uses `$state`, derived display values use `$derived`, and state-driven side effects use `$effect`.
 
 Top-level boot sequence:
 
@@ -40,12 +41,12 @@ Top-level boot sequence:
 
 | State | Owner | Notes |
 | --- | --- | --- |
-| Song list and selected song | `AppShell.svelte` | Loaded from `/songs/manifest.json`. |
-| Loaded metadata and lyrics | `AppShell.svelte` | Stored as `SongBundle`. |
+| Song list and selected song | `AppShell.svelte` | Loaded from `/songs/manifest.json` and stored in `$state`. |
+| Loaded metadata and lyrics | `AppShell.svelte` | Stored as a `$state` `SongBundle`. |
 | Audio buffers, gain nodes, source nodes | `AudioEngine` | Hidden inside the engine. |
 | Transport position and playing state | `AudioEngine` | Exposed through snapshots. |
 | Per-stem mute, solo, volume, load/error state | `AudioEngine` | Exposed as `snapshot.stems`. |
-| Waveform visual state | `WaveformView.svelte` and WaveSurfer | Recreated when stem URL or peaks URL changes. |
+| Waveform visual state | `WaveformView.svelte` and WaveSurfer | Recreated through `$effect` when stem URL, peaks URL, or duration changes. |
 | Keyboard shortcut decisions | `src/lib/keyboard.ts` | Handles Space bar play/pause while ignoring editable controls. |
 
 ## Audio Engine

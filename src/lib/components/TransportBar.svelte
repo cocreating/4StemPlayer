@@ -1,31 +1,48 @@
 <script lang="ts">
   import { formatDurationSeconds, formatTime } from '$lib/songs';
 
-  export let playing = false;
-  export let position = 0;
-  export let duration = 0;
-  export let disabled = false;
-  export let onPlay: () => void = () => {};
-  export let onPause: () => void = () => {};
-  export let onStop: () => void = () => {};
-  export let onSeek: (time: number) => void = () => {};
+  type Props = {
+    playing?: boolean;
+    position?: number;
+    duration?: number;
+    disabled?: boolean;
+    onPlay?: () => void;
+    onPause?: () => void;
+    onStop?: () => void;
+    onSeek?: (time: number) => void;
+  };
 
-  $: progressLabel = `${formatTime(position)} of ${formatTime(duration)}`;
-  $: positionSecondsLabel = `${formatDurationSeconds(position)} seconds`;
+  let {
+    playing = false,
+    position = 0,
+    duration = 0,
+    disabled = false,
+    onPlay = () => {},
+    onPause = () => {},
+    onStop = () => {},
+    onSeek = () => {}
+  }: Props = $props();
+
+  let progressLabel = $derived(`${formatTime(position)} of ${formatTime(duration)}`);
+  let positionSecondsLabel = $derived(`${formatDurationSeconds(position)} seconds`);
+
+  function handleSeekInput(event: Event) {
+    onSeek(Number((event.currentTarget as HTMLInputElement).value));
+  }
 </script>
 
 <section class="transport-bar panel" aria-label="Transport controls">
   <div class="transport-actions">
     {#if playing}
-      <button type="button" class="primary-action" disabled={disabled} on:click={onPause}>
+      <button type="button" class="primary-action" disabled={disabled} onclick={onPause}>
         Pause
       </button>
     {:else}
-      <button type="button" class="primary-action" disabled={disabled} on:click={onPlay}>
+      <button type="button" class="primary-action" disabled={disabled} onclick={onPlay}>
         Play
       </button>
     {/if}
-    <button type="button" disabled={disabled} on:click={onStop}>Stop</button>
+    <button type="button" disabled={disabled} onclick={onStop}>Stop</button>
   </div>
 
   <div class="transport-seek">
@@ -39,7 +56,7 @@
       value={position}
       disabled={disabled || duration === 0}
       aria-valuetext={progressLabel}
-      on:input={(event) => onSeek(Number((event.currentTarget as HTMLInputElement).value))}
+      oninput={handleSeekInput}
     />
     <div class="transport-readouts">
       <output for="transport-position">{progressLabel}</output>

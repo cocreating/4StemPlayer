@@ -2,17 +2,35 @@
   import type { StemPlaybackState } from '$lib/audio/AudioEngine';
   import WaveformView from './WaveformView.svelte';
 
-  export let stem: StemPlaybackState;
-  export let position = 0;
-  export let duration = 0;
-  export let disabled = false;
-  export let peaksUrl: string | undefined = undefined;
-  export let onMute: (muted: boolean) => void = () => {};
-  export let onSolo: (solo: boolean) => void = () => {};
-  export let onVolume: (volume: number) => void = () => {};
-  export let onSeek: (time: number) => void = () => {};
+  type Props = {
+    stem: StemPlaybackState;
+    position?: number;
+    duration?: number;
+    disabled?: boolean;
+    peaksUrl?: string;
+    onMute?: (muted: boolean) => void;
+    onSolo?: (solo: boolean) => void;
+    onVolume?: (volume: number) => void;
+    onSeek?: (time: number) => void;
+  };
 
-  $: volumeId = `${stem.name}-volume`;
+  let {
+    stem,
+    position = 0,
+    duration = 0,
+    disabled = false,
+    peaksUrl,
+    onMute = () => {},
+    onSolo = () => {},
+    onVolume = () => {},
+    onSeek = () => {}
+  }: Props = $props();
+
+  let volumeId = $derived(`${stem.name}-volume`);
+
+  function handleVolumeInput(event: Event) {
+    onVolume(Number((event.currentTarget as HTMLInputElement).value));
+  }
 </script>
 
 <article class:error-row={Boolean(stem.error)} class="stem-row">
@@ -34,7 +52,7 @@
         class:active={stem.muted}
         aria-pressed={stem.muted}
         disabled={disabled || !stem.loaded}
-        on:click={() => onMute(!stem.muted)}
+        onclick={() => onMute(!stem.muted)}
       >
         Mute
       </button>
@@ -43,7 +61,7 @@
         class:active={stem.solo}
         aria-pressed={stem.solo}
         disabled={disabled || !stem.loaded}
-        on:click={() => onSolo(!stem.solo)}
+        onclick={() => onSolo(!stem.solo)}
       >
         Solo
       </button>
@@ -71,7 +89,7 @@
       step="0.01"
       value={stem.volume}
       disabled={disabled || !stem.loaded}
-      on:input={(event) => onVolume(Number((event.currentTarget as HTMLInputElement).value))}
+      oninput={handleVolumeInput}
     />
     <output for={volumeId}>{Math.round(stem.volume * 100)}%</output>
   </div>

@@ -1,15 +1,27 @@
- <script lang="ts">
+<script lang="ts">
   import { STEM_ORDER, type AudioEngineSnapshot, type StemName } from '$lib/audio/AudioEngine';
   import type { SongManifestEntry } from '$lib/types';
   import StemRow from './StemRow.svelte';
 
-  export let snapshot: AudioEngineSnapshot;
-  export let manifestEntry: SongManifestEntry;
-  export let disabled = false;
-  export let onMute: (name: StemName, muted: boolean) => void = () => {};
-  export let onSolo: (name: StemName, solo: boolean) => void = () => {};
-  export let onVolume: (name: StemName, volume: number) => void = () => {};
-  export let onSeek: (time: number) => void = () => {};
+  type Props = {
+    snapshot: AudioEngineSnapshot;
+    manifestEntry: SongManifestEntry;
+    disabled?: boolean;
+    onMute?: (name: StemName, muted: boolean) => void;
+    onSolo?: (name: StemName, solo: boolean) => void;
+    onVolume?: (name: StemName, volume: number) => void;
+    onSeek?: (time: number) => void;
+  };
+
+  let {
+    snapshot,
+    manifestEntry,
+    disabled = false,
+    onMute = () => {},
+    onSolo = () => {},
+    onVolume = () => {},
+    onSeek = () => {}
+  }: Props = $props();
 </script>
 
 <section class="stem-mixer" aria-label="Stem mixer">

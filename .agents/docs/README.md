@@ -22,7 +22,7 @@ The current bundled song catalog contains one demo song:
 
 ## Current State
 
-- The app is a SvelteKit static site using Svelte 5, Vite, TypeScript, and Web Audio API.
+- The app is a SvelteKit static site using Svelte 5 runes syntax, Vite, TypeScript, and Web Audio API.
 - The UI is implemented as a single page at `src/routes/+page.svelte`, which renders `src/lib/components/AppShell.svelte`.
 - Audio playback is handled by `src/lib/audio/AudioEngine.ts`.
 - Waveforms are rendered with `wavesurfer.js`; precomputed peak files are used when available.
@@ -34,7 +34,7 @@ The current bundled song catalog contains one demo song:
 
 Validation performed during this review:
 
-- `npm test`: 6 test files passed, 29 tests passed.
+- `npm test`: 6 test files passed, 30 tests passed.
 - `npm run check`: 0 Svelte errors, 0 warnings.
 - `npm run songs:validate`: static song folder validated successfully.
 - `npm run build`: static build completed and wrote the site to `build/`.

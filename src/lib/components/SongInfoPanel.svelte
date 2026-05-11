@@ -2,12 +2,16 @@
   import { formatChords, formatDurationSeconds, formatMetadataDuration, formatTime } from '$lib/songs';
   import type { SongMetadata } from '$lib/types';
 
-  export let metadata: SongMetadata;
-  export let onSeek: (time: number) => void = () => {};
+  type Props = {
+    metadata: SongMetadata;
+    onSeek?: (time: number) => void;
+  };
 
-  $: chordText = formatChords(metadata.chords);
-  $: durationText = formatMetadataDuration(metadata);
-  $: durationSecondsText = formatDurationSeconds(metadata.durationSeconds);
+  let { metadata, onSeek = () => {} }: Props = $props();
+
+  let chordText = $derived(formatChords(metadata.chords));
+  let durationText = $derived(formatMetadataDuration(metadata));
+  let durationSecondsText = $derived(formatDurationSeconds(metadata.durationSeconds));
 </script>
 
 <section class="panel song-info" aria-labelledby="song-info-title">
@@ -62,7 +66,7 @@
       <h3 id="sections-title">Sections</h3>
       <div class="section-list">
         {#each metadata.sections as section}
-          <button type="button" class="section-marker" on:click={() => onSeek(section.start)}>
+          <button type="button" class="section-marker" onclick={() => onSeek(section.start)}>
             <span>{section.label}</span>
             <span>{formatTime(section.start)}</span>
           </button>
