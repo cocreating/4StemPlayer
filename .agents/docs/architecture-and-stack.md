@@ -1,6 +1,6 @@
 # Architecture And Stack
 
-Last reviewed: 2026-05-10
+Last reviewed: 2026-05-11
 
 ## Stack
 
@@ -46,6 +46,7 @@ Top-level boot sequence:
 | Transport position and playing state | `AudioEngine` | Exposed through snapshots. |
 | Per-stem mute, solo, volume, load/error state | `AudioEngine` | Exposed as `snapshot.stems`. |
 | Waveform visual state | `WaveformView.svelte` and WaveSurfer | Recreated when stem URL or peaks URL changes. |
+| Keyboard shortcut decisions | `src/lib/keyboard.ts` | Handles Space bar play/pause while ignoring editable controls. |
 
 ## Audio Engine
 
@@ -72,12 +73,15 @@ The engine is testable because its constructor accepts an injected `AudioContext
 Component flow:
 
 - `SongSelector` changes the selected song.
-- `TransportBar` calls `play`, `pause`, `stop`, and `seek`.
+- `TransportBar` calls `play`, `pause`, `stop`, and `seek`, and displays both `m:ss of m:ss` and a live seconds-only position.
 - `StemMixer` renders a `StemRow` for each stem.
 - `StemRow` controls mute, solo, and volume, and embeds `WaveformView`.
 - `WaveformView` dynamically imports WaveSurfer in the browser and sends waveform interaction times back to `AppShell`.
 - `SongInfoPanel` renders metadata and section markers that call `seek`.
 - `LyricsViewer` displays lyrics text in a preserved whitespace block.
+- `AppShell` registers a browser-only Space bar keydown listener from `onMount`; cleanup is returned from `onMount` to avoid SSR access to `window`.
+
+Desktop layout is a normal responsive two-column grid. No player or info areas are sticky; the page scrolls as a standard document.
 
 ## Static Song Pipeline
 
@@ -85,13 +89,20 @@ Songs live under `static/songs/`. At runtime, the app only reads static files. T
 
 - `scripts/validate-songs.ts` checks that every song folder has `song.json`, `lyrics.md`, and all required stems.
 - `scripts/generate-song-manifest.ts` creates the browser-facing `manifest.json` with URL-encoded asset paths.
-- `scripts/generate-peaks.ts` shells out to `ffmpeg`, converts each MP3 to mono float samples at 8000 Hz, computes peak magnitudes, and writes `*.peaks.json`.
+- `scripts/generate-peaks.ts` shells out to `ffmpeg`, converts each MP3 to mono float samples at 8000 Hz, computes peak magnitudes, and writes `*.peaks.json`. Current peak files are skipped unless forced.
+- `scripts/refresh-songs.ts` orchestrates validation, peak generation, manifest regeneration, and optional release checks.
 
 Stem filename resolution accepts:
 
 - `<Folder>_<stem>.mp3`
 - `<Song Title>_<stem>.mp3`
 - Any file whose lowercase name ends with `_<stem>.mp3`
+
+Primary workflow commands:
+
+- `npm run songs:prepare`: validate songs, generate missing or outdated peaks, regenerate manifest.
+- `npm run songs:release`: run `songs:prepare`, then `check`, `test`, and `build`.
+- `npm run songs:release -- --skip-build`: run release validation without the production build.
 
 ## Testing
 
@@ -104,6 +115,10 @@ Current tests cover:
 - Song manifest creation.
 - Song folder validation errors.
 - URL-safe manifest paths for stem files with spaces.
+- Refresh workflow orchestration and CLI flag parsing.
+- Peak skipping when peak files are newer than stems.
+- Structured chord formatting and duration metadata formatting.
+- Keyboard shortcut guard behavior.
 
 The test runner is configured in `vite.config.ts`:
 
@@ -125,4 +140,3 @@ The app is deployable as static files from `build/`. Static hosting must serve:
 - Markdown lyrics under `songs/`
 
 No server-side route or API is required after build.
-

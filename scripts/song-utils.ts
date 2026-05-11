@@ -9,7 +9,13 @@ export interface SongJson {
   key: string;
   bpm: number;
   timeSignature: string;
-  chords?: string;
+  duration?: string;
+  durationSeconds?: number;
+  chords?: string | Record<string, string | {
+    label?: string;
+    progression: string;
+    notes?: string;
+  }>;
   notes?: string;
   lyrics?: string;
   sections?: Array<{

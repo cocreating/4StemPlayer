@@ -6,13 +6,23 @@ export interface SectionMarker {
   end?: number;
 }
 
+export interface ChordSection {
+  label?: string;
+  progression: string;
+  notes?: string;
+}
+
+export type SongChords = string | Record<string, string | ChordSection>;
+
 export interface SongMetadata {
   title: string;
   artist: string;
   key: string;
   bpm: number;
   timeSignature: string;
-  chords?: string;
+  duration?: string;
+  durationSeconds?: number;
+  chords?: SongChords;
   notes?: string;
   lyrics?: string;
   sections?: SectionMarker[];

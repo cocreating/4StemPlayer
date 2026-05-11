@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
   import { AudioEngine, STEM_ORDER, type AudioEngineSnapshot } from '$lib/audio/AudioEngine';
+  import { shouldHandlePlaybackShortcut } from '$lib/keyboard';
   import { loadSongBundle, loadSongManifest, stemLabel } from '$lib/songs';
   import type { SongBundle, SongManifestEntry } from '$lib/types';
   import SongSelector from './SongSelector.svelte';
@@ -91,8 +92,34 @@
     engine?.seek(time);
   }
 
+  function togglePlayback() {
+    if (!engineSnapshot || songLoading || engineSnapshot.errors.length > 0) {
+      return;
+    }
+
+    if (engineSnapshot.playing) {
+      pause();
+    } else {
+      play();
+    }
+  }
+
+  function handleKeydown(event: KeyboardEvent) {
+    if (!shouldHandlePlaybackShortcut(event)) {
+      return;
+    }
+
+    event.preventDefault();
+    togglePlayback();
+  }
+
   onMount(() => {
     void boot();
+    window.addEventListener('keydown', handleKeydown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeydown);
+    };
   });
 
   onDestroy(() => {

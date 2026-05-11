@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, stat, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
@@ -14,6 +14,10 @@ interface PeaksFile {
   sampleRate: number;
   samplesPerPixel: number;
   peaks: number[];
+}
+
+interface GeneratePeaksOptions {
+  force?: boolean;
 }
 
 async function runFfmpegForSamples(inputPath: string): Promise<Float32Array> {
@@ -61,7 +65,19 @@ export function computePeaks(samples: Float32Array, samplesPerPixel = 512) {
   return peaks;
 }
 
-export async function generatePeaksForSongs(songsRoot = resolve('static/songs')) {
+async function isPeakCurrent(stemPath: string, outputPath: string) {
+  try {
+    const [stemStats, peakStats] = await Promise.all([stat(stemPath), stat(outputPath)]);
+    return peakStats.mtimeMs >= stemStats.mtimeMs;
+  } catch {
+    return false;
+  }
+}
+
+export async function generatePeaksForSongs(
+  songsRoot = resolve('static/songs'),
+  options: GeneratePeaksOptions = {}
+) {
   const folders = await listSongFolders(songsRoot);
   const written: string[] = [];
 
@@ -74,13 +90,16 @@ export async function generatePeaksForSongs(songsRoot = resolve('static/songs'))
         throw new Error(`${folder}: missing ${stem} stem`);
       }
       const stemPath = join(songDir, stemFile);
+      const outputPath = join(songDir, stemPeakFileName(stemFile));
+      if (!options.force && (await isPeakCurrent(stemPath, outputPath))) {
+        continue;
+      }
       const samples = await runFfmpegForSamples(stemPath);
       const output: PeaksFile = {
         sampleRate: 8000,
         samplesPerPixel: 512,
         peaks: computePeaks(samples)
       };
-      const outputPath = join(songDir, stemPeakFileName(stemFile));
       await mkdir(songDir, { recursive: true });
       await writeFile(outputPath, `${JSON.stringify(output)}\n`);
       written.push(outputPath);

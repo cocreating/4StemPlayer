@@ -1,9 +1,13 @@
 <script lang="ts">
-  import { formatTime } from '$lib/songs';
+  import { formatChords, formatDurationSeconds, formatMetadataDuration, formatTime } from '$lib/songs';
   import type { SongMetadata } from '$lib/types';
 
   export let metadata: SongMetadata;
   export let onSeek: (time: number) => void = () => {};
+
+  $: chordText = formatChords(metadata.chords);
+  $: durationText = formatMetadataDuration(metadata);
+  $: durationSecondsText = formatDurationSeconds(metadata.durationSeconds);
 </script>
 
 <section class="panel song-info" aria-labelledby="song-info-title">
@@ -25,12 +29,24 @@
       <dt>Time</dt>
       <dd>{metadata.timeSignature}</dd>
     </div>
+    {#if durationText}
+      <div>
+        <dt>Duration</dt>
+        <dd>{durationText}</dd>
+      </div>
+    {/if}
+    {#if durationSecondsText}
+      <div>
+        <dt>Seconds</dt>
+        <dd>{durationSecondsText}</dd>
+      </div>
+    {/if}
   </dl>
 
-  {#if metadata.chords}
+  {#if chordText}
     <section class="info-section" aria-labelledby="chords-title">
       <h3 id="chords-title">Chords</h3>
-      <pre>{metadata.chords}</pre>
+      <pre>{chordText}</pre>
     </section>
   {/if}
 

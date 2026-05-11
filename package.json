@@ -10,6 +10,8 @@
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run",
     "test:unit": "vitest run",
+    "songs:prepare": "tsx scripts/refresh-songs.ts",
+    "songs:release": "tsx scripts/refresh-songs.ts --release",
     "songs:manifest": "tsx scripts/generate-song-manifest.ts",
     "songs:validate": "tsx scripts/validate-songs.ts",
     "songs:peaks": "tsx scripts/generate-peaks.ts"

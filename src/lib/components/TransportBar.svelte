@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { formatTime } from '$lib/songs';
+  import { formatDurationSeconds, formatTime } from '$lib/songs';
 
   export let playing = false;
   export let position = 0;
@@ -11,6 +11,7 @@
   export let onSeek: (time: number) => void = () => {};
 
   $: progressLabel = `${formatTime(position)} of ${formatTime(duration)}`;
+  $: positionSecondsLabel = `${formatDurationSeconds(position)} seconds`;
 </script>
 
 <section class="transport-bar panel" aria-label="Transport controls">
@@ -40,6 +41,9 @@
       aria-valuetext={progressLabel}
       on:input={(event) => onSeek(Number((event.currentTarget as HTMLInputElement).value))}
     />
-    <output for="transport-position">{progressLabel}</output>
+    <div class="transport-readouts">
+      <output for="transport-position">{progressLabel}</output>
+      <output for="transport-position">{positionSecondsLabel}</output>
+    </div>
   </div>
 </section>

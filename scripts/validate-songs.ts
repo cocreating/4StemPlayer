@@ -22,6 +22,54 @@ function isMissing(value: unknown) {
   return value === undefined || value === null || value === '';
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function validateChords(folder: string, chords: unknown, errors: string[]) {
+  if (chords === undefined) {
+    return;
+  }
+
+  if (typeof chords === 'string') {
+    return;
+  }
+
+  if (!isRecord(chords)) {
+    errors.push(`${folder}/song.json: chords must be a string or section object`);
+    return;
+  }
+
+  for (const [sectionKey, sectionValue] of Object.entries(chords)) {
+    if (typeof sectionValue === 'string') {
+      continue;
+    }
+
+    if (!isRecord(sectionValue)) {
+      errors.push(`${folder}/song.json: chords.${sectionKey} must be a string or object`);
+      continue;
+    }
+
+    if (typeof sectionValue.progression !== 'string' || sectionValue.progression.trim() === '') {
+      errors.push(`${folder}/song.json: chords.${sectionKey}.progression must be a string`);
+    }
+
+    if (
+      sectionValue.label !== undefined &&
+      (typeof sectionValue.label !== 'string' || sectionValue.label.trim() === '')
+    ) {
+      errors.push(`${folder}/song.json: chords.${sectionKey}.label must be a string`);
+    }
+
+    if (
+      sectionValue.notes !== undefined &&
+      (typeof sectionValue.notes !== 'string' || sectionValue.notes.trim() === '')
+    ) {
+      errors.push(`${folder}/song.json: chords.${sectionKey}.notes must be a string`);
+    }
+  }
+}
+
 export async function validateSongs(songsRoot = resolve('static/songs')): Promise<ValidationResult> {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -59,6 +107,16 @@ export async function validateSongs(songsRoot = resolve('static/songs')): Promis
         if (typeof songJson.bpm !== 'number') {
           errors.push(`${folder}/song.json: bpm must be a number`);
         }
+        if (songJson.duration !== undefined && typeof songJson.duration !== 'string') {
+          errors.push(`${folder}/song.json: duration must be a string`);
+        }
+        if (
+          songJson.durationSeconds !== undefined &&
+          (typeof songJson.durationSeconds !== 'number' || !Number.isFinite(songJson.durationSeconds))
+        ) {
+          errors.push(`${folder}/song.json: durationSeconds must be a number`);
+        }
+        validateChords(folder, songJson.chords, errors);
         if (songJson.sections) {
           songJson.sections.forEach((section, index) => {
             if (isMissing(section.label)) {

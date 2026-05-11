@@ -1,4 +1,4 @@
-import type { SongBundle, SongManifest, SongManifestEntry, SongMetadata } from './types';
+import type { ChordSection, SongBundle, SongChords, SongManifest, SongManifestEntry, SongMetadata } from './types';
 
 export async function fetchText(url: string) {
   const response = await fetch(url);
@@ -40,6 +40,64 @@ export function formatTime(seconds: number) {
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 }
 
+export function formatMetadataDuration(metadata: Pick<SongMetadata, 'duration' | 'durationSeconds'>) {
+  if (metadata.duration) {
+    return metadata.duration;
+  }
+
+  if (typeof metadata.durationSeconds === 'number') {
+    return formatTime(metadata.durationSeconds);
+  }
+
+  return '';
+}
+
+export function formatDurationSeconds(durationSeconds: number | undefined) {
+  if (typeof durationSeconds !== 'number' || !Number.isFinite(durationSeconds)) {
+    return '';
+  }
+
+  return String(Math.round(durationSeconds));
+}
+
 export function stemLabel(stem: string) {
   return stem.slice(0, 1).toUpperCase() + stem.slice(1);
+}
+
+function sectionLabel(sectionKey: string) {
+  return sectionKey
+    .replace(/[-_]+/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function isChordSection(value: string | ChordSection): value is ChordSection {
+  return typeof value === 'object' && value !== null;
+}
+
+export function formatChords(chords: SongChords | undefined) {
+  if (!chords) {
+    return '';
+  }
+
+  if (typeof chords === 'string') {
+    return chords;
+  }
+
+  return Object.entries(chords)
+    .flatMap(([key, value]) => {
+      if (typeof value === 'string') {
+        return [`${sectionLabel(key)}: ${value}`];
+      }
+
+      if (!isChordSection(value)) {
+        return [];
+      }
+
+      const lines = [`${value.label ?? sectionLabel(key)}: ${value.progression}`];
+      if (value.notes) {
+        lines.push(value.notes);
+      }
+      return lines;
+    })
+    .join('\n');
 }

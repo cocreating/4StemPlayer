@@ -181,7 +181,7 @@ pre {
 .info-stack,
 .stem-mixer {
   display: grid;
-  gap: 1rem;
+  gap: 6px
 }
 
 .transport-bar {
@@ -219,6 +219,13 @@ button.active::after {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
   font-weight: 700;
+}
+
+.transport-readouts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  justify-content: space-between;
 }
 
 .stem-row {
@@ -436,11 +443,6 @@ button.active::after {
     grid-template-columns: minmax(0, 1.4fr) minmax(18rem, 0.8fr);
     align-items: start;
   }
-
-  .info-stack {
-    position: sticky;
-    top: 1rem;
-  }
 }
 
 @media (min-width: 64em) {
@@ -491,7 +493,7 @@ button.active::after {
 
 @media (min-width: 112.5em) {
   .stem-mixer {
-    gap: 1.15rem;
+gap: 6px;
   }
 }
 

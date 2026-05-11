@@ -113,6 +113,54 @@ describe('song scripts', () => {
     );
   });
 
+  it('reports malformed structured chord sections', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'songs-'));
+    const songDir = await writeValidSong(root);
+    await writeFile(
+      join(songDir, 'song.json'),
+      JSON.stringify(
+        {
+          ...songJson,
+          chords: {
+            intro: { label: 'Intro' }
+          }
+        },
+        null,
+        2
+      )
+    );
+
+    const result = await validateSongs(root);
+
+    expect(result.ok).toBe(false);
+    expect(result.errors).toContain(
+      'GloryBox/song.json: chords.intro.progression must be a string'
+    );
+  });
+
+  it('reports malformed duration metadata', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'songs-'));
+    const songDir = await writeValidSong(root);
+    await writeFile(
+      join(songDir, 'song.json'),
+      JSON.stringify(
+        {
+          ...songJson,
+          duration: 306,
+          durationSeconds: '306'
+        },
+        null,
+        2
+      )
+    );
+
+    const result = await validateSongs(root);
+
+    expect(result.ok).toBe(false);
+    expect(result.errors).toContain('GloryBox/song.json: duration must be a string');
+    expect(result.errors).toContain('GloryBox/song.json: durationSeconds must be a number');
+  });
+
   it('writes manifest.json into the songs root', async () => {
     const root = await mkdtemp(join(tmpdir(), 'songs-'));
     await writeValidSong(root);

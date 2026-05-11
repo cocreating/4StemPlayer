@@ -1,27 +1,56 @@
 {
   "title": "Glory Box",
-  "artist": "Synthetic Demo Band",
-  "key": "G minor",
+  "artist": "Portishead",
+  "key": "D#m",
   "bpm": 82,
   "timeSignature": "4/4",
-  "chords": "Intro: Gm | Gm | Eb | D\nVerse: Gm | Bb | Eb | D\nChorus: Eb | F | Gm | Gm",
-  "notes": "Generated sine and pulse stems for the technical spike. These files are only for proving synchronized four-stem playback.",
+  "duration": "3:32",
+  "durationSeconds": 306,
+  "chords": {
+    "intro": {
+      "progression": " Dm | Dm/C | Bm7b5 | Bbmaj7"
+    },
+    "verse": {
+      "label": "Verse ",
+      "progression": "Dm | Dm/C | Bm7b5 | Bbmaj7"
+    },
+    "chorus": {
+      "progression": "Dm | Dm/C | Bm7b5 | Bbmaj7"
+    }
+  },
+  "notes": "Glory Box is based on a sample from Isaac Hayes'-'Ike's rap II'.",
   "sections": [
     {
-      "label": "Intro",
-      "start": 0
-    },
-    {
-      "label": "Verse",
-      "start": 4
+      "label": "Verse 1",
+      "start": 15
     },
     {
       "label": "Chorus",
-      "start": 8
+      "start": 40
+    },
+    {
+      "label": "Verse 2",
+      "start": 71
+    },
+    {
+      "label": "Chorus",
+      "start": 97
+    },
+    {
+      "label": "Guitar Solo",
+      "start": 127
+    },
+    {
+      "label": "Verse 3",
+      "start": 144
+    },
+    {
+      "label": "Break",
+      "start": 183
     },
     {
       "label": "Outro",
-      "start": 12
+      "start": 199
     }
   ]
 }
