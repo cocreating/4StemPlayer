@@ -20,39 +20,35 @@
   "sections": [
     {
       "label": "Verse 1",
-      "start": 15
+      "start": 20
     },
     {
       "label": "Chorus",
-      "start": 40
+      "start": 36
     },
     {
       "label": "Verse 2",
-      "start": 71
+      "start": 50
     },
     {
+      "label": "Chorus",
+      "start": 66.5
+    },
+    {
+      "label": "Verse 3",
+      "start": 82
+    },
+  {
       "label": "Chorus",
       "start": 96
     },
     {
-      "label": "Guitar Solo",
-      "start": 127
-    },
-    {
-      "label": "Verse 3",
+      "label": "Verse 4",
       "start": 144
     },
     {
-      "label": "Bridge",
-      "start": 176
-    },
-     {
-      "label": "Break",
-      "start": 184
-    },
-    {
-      "label": "Outro",
-      "start": 199
+      "label": "Chorus",
+      "start": 174
     }
   ]
 }
