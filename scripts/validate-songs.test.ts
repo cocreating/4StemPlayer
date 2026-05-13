@@ -98,6 +98,28 @@ describe('song scripts', () => {
     });
   });
 
+  it('includes optional extra stem files in the generated manifest', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'songs-'));
+    const songDir = await writeValidSong(root);
+    await writeFile(join(songDir, 'GloryBox_keyboards.mp3'), 'fake keys mp3');
+    await writeFile(join(songDir, 'GloryBox_keyboards.peaks.json'), '{"peaks":[0,1]}');
+
+    const result = await validateSongs(root);
+    const manifest = await createSongManifest(root);
+
+    expect(result.ok).toBe(true);
+    expect(manifest.songs[0]?.stems).toEqual({
+      bass: '/songs/GloryBox/GloryBox_bass.mp3',
+      drums: '/songs/GloryBox/GloryBox_drums.mp3',
+      vocals: '/songs/GloryBox/GloryBox_vocals.mp3',
+      other: '/songs/GloryBox/GloryBox_other.mp3',
+      keyboards: '/songs/GloryBox/GloryBox_keyboards.mp3'
+    });
+    expect(manifest.songs[0]?.peaks).toMatchObject({
+      keyboards: '/songs/GloryBox/GloryBox_keyboards.peaks.json'
+    });
+  });
+
   it('reports expected filename options when a stem file is missing', async () => {
     const root = await mkdtemp(join(tmpdir(), 'songs-'));
     const songDir = join(root, 'GloryBox');

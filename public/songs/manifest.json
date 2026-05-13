@@ -1,6 +1,29 @@
 {
-  "generatedAt": "2026-05-11T00:48:47.732Z",
+  "generatedAt": "2026-05-13T00:11:50.756Z",
   "songs": [
+    {
+      "id": "Bambola",
+      "folder": "Bambola",
+      "title": "La bambola",
+      "artist": "Patty Pravo",
+      "bpm": 118,
+      "key": "Gm",
+      "timeSignature": "4/4",
+      "songJsonUrl": "/songs/Bambola/song.json",
+      "lyricsUrl": "/songs/Bambola/lyrics.md",
+      "stems": {
+        "bass": "/songs/Bambola/Bambola_bass.mp3",
+        "drums": "/songs/Bambola/Bambola_drums.mp3",
+        "vocals": "/songs/Bambola/Bambola_vocals.mp3",
+        "other": "/songs/Bambola/Bambola_other.mp3"
+      },
+      "peaks": {
+        "bass": "/songs/Bambola/Bambola_bass.peaks.json",
+        "drums": "/songs/Bambola/Bambola_drums.peaks.json",
+        "vocals": "/songs/Bambola/Bambola_vocals.peaks.json",
+        "other": "/songs/Bambola/Bambola_other.peaks.json"
+      }
+    },
     {
       "id": "GloryBox",
       "folder": "GloryBox",
@@ -15,13 +38,61 @@
         "bass": "/songs/GloryBox/GloryBox_bass.mp3",
         "drums": "/songs/GloryBox/GloryBox_drums.mp3",
         "vocals": "/songs/GloryBox/GloryBox_vocals.mp3",
-        "other": "/songs/GloryBox/GloryBox_other.mp3"
+        "other": "/songs/GloryBox/GloryBox_other.mp3",
+        "other2": "/songs/GloryBox/GloryBox_other2.mp3"
       },
       "peaks": {
         "bass": "/songs/GloryBox/GloryBox_bass.peaks.json",
         "drums": "/songs/GloryBox/GloryBox_drums.peaks.json",
         "vocals": "/songs/GloryBox/GloryBox_vocals.peaks.json",
-        "other": "/songs/GloryBox/GloryBox_other.peaks.json"
+        "other": "/songs/GloryBox/GloryBox_other.peaks.json",
+        "other2": "/songs/GloryBox/GloryBox_other2.peaks.json"
+      }
+    },
+    {
+      "id": "IkesRap2",
+      "folder": "IkesRap2",
+      "title": "Ike’s Rap 2",
+      "artist": "Isaac Hayes",
+      "bpm": 59,
+      "key": "Dm",
+      "timeSignature": "4/4",
+      "songJsonUrl": "/songs/IkesRap2/song.json",
+      "lyricsUrl": "/songs/IkesRap2/lyrics.md",
+      "stems": {
+        "bass": "/songs/IkesRap2/IkesRap2_bass.mp3",
+        "drums": "/songs/IkesRap2/IkesRap2_drums.mp3",
+        "vocals": "/songs/IkesRap2/IkesRap2_vocals.mp3",
+        "other": "/songs/IkesRap2/IkesRap2_other.mp3"
+      },
+      "peaks": {
+        "bass": "/songs/IkesRap2/IkesRap2_bass.peaks.json",
+        "drums": "/songs/IkesRap2/IkesRap2_drums.peaks.json",
+        "vocals": "/songs/IkesRap2/IkesRap2_vocals.peaks.json",
+        "other": "/songs/IkesRap2/IkesRap2_other.peaks.json"
+      }
+    },
+    {
+      "id": "SendHLTMe",
+      "folder": "SendHLTMe",
+      "title": "Send His Love to Me",
+      "artist": "PJ Harvey",
+      "bpm": 125,
+      "key": "C",
+      "timeSignature": "4/4",
+      "songJsonUrl": "/songs/SendHLTMe/song.json",
+      "lyricsUrl": "/songs/SendHLTMe/lyrics.md",
+      "stems": {
+        "bass": "/songs/SendHLTMe/SendHLTMe_bass.mp3",
+        "drums": "/songs/SendHLTMe/SendHLTMe_drums.mp3",
+        "vocals": "/songs/SendHLTMe/SendHLTMe_vocals.mp3",
+        "other": "/songs/SendHLTMe/SendHLTMe_other.mp3"
+      },
+      "peaks": {
+        "bass": "/songs/SendHLTMe/SendHLTMe_bass.peaks.json",
+        "drums": "/songs/SendHLTMe/SendHLTMe_drums.peaks.json",
+        "vocals": "/songs/SendHLTMe/SendHLTMe_vocals.peaks.json",
+        "other": "/songs/SendHLTMe/SendHLTMe_other.peaks.json"
       }
     }
   ]

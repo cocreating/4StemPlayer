@@ -2,12 +2,11 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   type SongManifest,
-  REQUIRED_STEMS,
+  listStemFiles,
   listSongFolders,
   pathExists,
   publicSongPath,
   readSongJson,
-  resolveStemFile,
   stemPeakFileName,
   writeJson
 } from './song-utils';
@@ -25,23 +24,15 @@ export async function createSongManifest(
     folders.map(async (folder) => {
       const songJson = await readSongJson(join(songsRoot, folder, 'song.json'));
       const songDir = join(songsRoot, folder);
-      const stemFiles = await Promise.all(
-        REQUIRED_STEMS.map(async (stem) => [stem, await resolveStemFile(songDir, folder, songJson.title, stem)] as const)
-      );
+      const stemFiles = await listStemFiles(songDir, folder, songJson.title);
       const stems = Object.fromEntries(
         stemFiles.map(([stem, fileName]) => {
-          if (!fileName) {
-            throw new Error(`${folder}: missing ${stem} stem`);
-          }
           return [stem, publicSongPath(folder, fileName)];
         })
-      ) as Record<(typeof REQUIRED_STEMS)[number], string>;
+      ) as Record<string, string>;
 
       const peaksEntries = await Promise.all(
         stemFiles.map(async ([stem, stemFile]) => {
-          if (!stemFile) {
-            return null;
-          }
           const peaksFile = stemPeakFileName(stemFile);
           const peaksPath = join(songsRoot, folder, peaksFile);
           return (await pathExists(peaksPath)) ? [stem, publicSongPath(folder, peaksFile)] : null;

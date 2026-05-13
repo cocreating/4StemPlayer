@@ -1,3 +1,4 @@
+import { STEM_ORDER } from './audio/AudioEngine';
 import type { ChordSection, SongBundle, SongChords, SongManifest, SongManifestEntry, SongMetadata } from './types';
 
 export async function fetchText(url: string) {
@@ -62,6 +63,16 @@ export function formatDurationSeconds(durationSeconds: number | undefined) {
 
 export function stemLabel(stem: string) {
   return stem.slice(0, 1).toUpperCase() + stem.slice(1);
+}
+
+export function orderedStemNames(stems: Record<string, string>) {
+  const availableStems = Object.keys(stems);
+  const preferredStems = STEM_ORDER.filter((stem) => availableStems.includes(stem));
+  const extraStems = availableStems
+    .filter((stem) => !(STEM_ORDER as readonly string[]).includes(stem))
+    .sort((left, right) => left.localeCompare(right));
+
+  return [...preferredStems, ...extraStems];
 }
 
 function sectionLabel(sectionKey: string) {

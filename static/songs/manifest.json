@@ -1,6 +1,29 @@
 {
-  "generatedAt": "2026-05-12T00:15:13.956Z",
+  "generatedAt": "2026-05-13T00:11:50.756Z",
   "songs": [
+    {
+      "id": "Bambola",
+      "folder": "Bambola",
+      "title": "La bambola",
+      "artist": "Patty Pravo",
+      "bpm": 118,
+      "key": "Gm",
+      "timeSignature": "4/4",
+      "songJsonUrl": "/songs/Bambola/song.json",
+      "lyricsUrl": "/songs/Bambola/lyrics.md",
+      "stems": {
+        "bass": "/songs/Bambola/Bambola_bass.mp3",
+        "drums": "/songs/Bambola/Bambola_drums.mp3",
+        "vocals": "/songs/Bambola/Bambola_vocals.mp3",
+        "other": "/songs/Bambola/Bambola_other.mp3"
+      },
+      "peaks": {
+        "bass": "/songs/Bambola/Bambola_bass.peaks.json",
+        "drums": "/songs/Bambola/Bambola_drums.peaks.json",
+        "vocals": "/songs/Bambola/Bambola_vocals.peaks.json",
+        "other": "/songs/Bambola/Bambola_other.peaks.json"
+      }
+    },
     {
       "id": "GloryBox",
       "folder": "GloryBox",
@@ -15,13 +38,15 @@
         "bass": "/songs/GloryBox/GloryBox_bass.mp3",
         "drums": "/songs/GloryBox/GloryBox_drums.mp3",
         "vocals": "/songs/GloryBox/GloryBox_vocals.mp3",
-        "other": "/songs/GloryBox/GloryBox_other.mp3"
+        "other": "/songs/GloryBox/GloryBox_other.mp3",
+        "other2": "/songs/GloryBox/GloryBox_other2.mp3"
       },
       "peaks": {
         "bass": "/songs/GloryBox/GloryBox_bass.peaks.json",
         "drums": "/songs/GloryBox/GloryBox_drums.peaks.json",
         "vocals": "/songs/GloryBox/GloryBox_vocals.peaks.json",
-        "other": "/songs/GloryBox/GloryBox_other.peaks.json"
+        "other": "/songs/GloryBox/GloryBox_other.peaks.json",
+        "other2": "/songs/GloryBox/GloryBox_other2.peaks.json"
       }
     },
     {

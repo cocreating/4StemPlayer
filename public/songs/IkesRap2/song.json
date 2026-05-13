@@ -1,0 +1,24 @@
+{
+  "title": "Ike’s Rap 2",
+  "artist": "Isaac Hayes",
+  "key": "Dm",
+  "bpm": 59,
+  "timeSignature": "4/4",
+  "chords": {
+    "verse": {
+      "label": "Verse ",
+      "progression": "Bₘ | B♭ᵐᵃʲ⁷ | Dₘ | F"
+    }
+  },
+  "notes": "...",
+  "sections": [
+    {
+      "label": "Intro",
+      "start": 4
+    },
+    {
+      "label": "Violin",
+      "start": 36
+    }
+  ]
+}

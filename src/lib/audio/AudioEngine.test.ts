@@ -133,6 +133,30 @@ describe('AudioEngine', () => {
     ]);
   });
 
+  it('loads and exposes optional stems supplied by a song', async () => {
+    const { context, engine, fetchArrayBuffer } = makeEngine();
+
+    await engine.loadSong({
+      id: 'glorybox',
+      title: 'Glory Box',
+      stems: [...stemNames, 'keyboards'].map((name) => ({
+        name,
+        label: name,
+        url: `/songs/GloryBox/GloryBox_${name}.mp3`
+      }))
+    });
+
+    const snapshot = engine.getSnapshot();
+
+    expect(fetchArrayBuffer).toHaveBeenCalledTimes(5);
+    expect(context.decodedBuffers).toBe(5);
+    expect(snapshot.stems.keyboards).toMatchObject({
+      name: 'keyboards',
+      label: 'keyboards',
+      loaded: true
+    });
+  });
+
   it('seeks every loaded stem through the AudioEngine while preserving sync', async () => {
     const { context, engine } = makeEngine();
     await engine.loadSong({

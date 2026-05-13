@@ -3,10 +3,9 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import {
-  REQUIRED_STEMS,
+  listStemFiles,
   listSongFolders,
   readSongJson,
-  resolveStemFile,
   stemPeakFileName
 } from './song-utils';
 
@@ -84,11 +83,7 @@ export async function generatePeaksForSongs(
   for (const folder of folders) {
     const songDir = join(songsRoot, folder);
     const songJson = await readSongJson(join(songDir, 'song.json'));
-    for (const stem of REQUIRED_STEMS) {
-      const stemFile = await resolveStemFile(songDir, folder, songJson.title, stem);
-      if (!stemFile) {
-        throw new Error(`${folder}: missing ${stem} stem`);
-      }
+    for (const [, stemFile] of await listStemFiles(songDir, folder, songJson.title)) {
       const stemPath = join(songDir, stemFile);
       const outputPath = join(songDir, stemPeakFileName(stemFile));
       if (!options.force && (await isPeakCurrent(stemPath, outputPath))) {

@@ -1,0 +1,68 @@
+{
+  "title": "La bambola",
+  "artist": "Patty Pravo",
+  "key": "Gm",
+  "bpm": 118,
+  "timeSignature": "4/4",
+  "duration": "3:00",
+  "durationSeconds": 180,
+  "chords": {
+    "intro": {
+      "progression": "Gm | D | Gm | D"
+    },
+    "verse": {
+      "label": "Verse",
+      "progression": "Gm | D | Gm | Cm | D | Gm"
+    },
+    "chorus": {
+      "label": "Refrain",
+      "progression": "Bb | Eb | Cm | D | Gm"
+    },
+    "bridge": {
+      "progression": "Cm | Gm | D | Gm"
+    }
+  },
+  "notes": "Italian pop single from 1968, written by Franco Migliacci, Bruno Zambrini, and Ruggero Cini. Artist spelling is Patty Pravo; some file/source names use Patty Bravo.",
+  "sections": [
+    {
+      "label": "Intro",
+      "start": 0
+    },
+    {
+      "label": "Verse 1",
+      "start": 9
+    },
+    {
+      "label": "Refrain 1",
+      "start": 28
+    },
+    {
+      "label": "Verse 2",
+      "start": 45
+    },
+    {
+      "label": "Refrain 2",
+      "start": 64
+    },
+    {
+      "label": "Instrumental",
+      "start": 82
+    },
+    {
+      "label": "Verse 3",
+      "start": 101
+    },
+    {
+      "label": "Refrain 3",
+      "start": 121
+    },
+    {
+      "label": "Final Refrain",
+      "start": 144
+    },
+    {
+      "label": "Outro",
+      "start": 166
+    }
+  ]
+}

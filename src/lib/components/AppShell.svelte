@@ -1,8 +1,8 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
-  import { AudioEngine, STEM_ORDER, type AudioEngineSnapshot } from '$lib/audio/AudioEngine';
+  import { AudioEngine, type AudioEngineSnapshot } from '$lib/audio/AudioEngine';
   import { shouldHandlePlaybackShortcut } from '$lib/keyboard';
-  import { loadSongBundle, loadSongManifest, stemLabel } from '$lib/songs';
+  import { loadSongBundle, loadSongManifest, orderedStemNames, stemLabel } from '$lib/songs';
   import type { SongBundle, SongManifestEntry } from '$lib/types';
   import SongSelector from './SongSelector.svelte';
   import StemMixer from './StemMixer.svelte';
@@ -60,10 +60,11 @@
     try {
       const bundle = await loadSongBundle(nextEntry);
       songBundle = bundle;
+      const stemNames = orderedStemNames(nextEntry.stems);
       await engine.loadSong({
         id: nextEntry.id,
         title: bundle.metadata.title,
-        stems: STEM_ORDER.map((name) => ({
+        stems: stemNames.map((name) => ({
           name,
           label: stemLabel(name),
           url: nextEntry.stems[name]

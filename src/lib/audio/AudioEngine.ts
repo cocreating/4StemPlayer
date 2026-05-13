@@ -1,6 +1,6 @@
 export const STEM_ORDER = ['vocals', 'drums', 'bass', 'other'] as const;
 
-export type StemName = (typeof STEM_ORDER)[number];
+export type StemName = string;
 
 export interface LoadableStem {
   name: StemName;
@@ -35,7 +35,7 @@ export interface AudioEngineSnapshot {
   playing: boolean;
   loading: boolean;
   errors: string[];
-  stems: Record<StemName, StemPlaybackState>;
+  stems: Record<string, StemPlaybackState>;
 }
 
 interface EngineOptions {
@@ -95,16 +95,6 @@ async function defaultFetchArrayBuffer(url: string) {
   return response.arrayBuffer();
 }
 
-function emptyStemRecord(): Record<StemName, StemPlaybackState> {
-  return STEM_ORDER.reduce(
-    (record, name) => {
-      record[name] = createEmptyStem(name);
-      return record;
-    },
-    {} as Record<StemName, StemPlaybackState>
-  );
-}
-
 export class AudioEngine {
   private readonly audioContext: AudioContext;
   private readonly fetchArrayBuffer: (url: string) => Promise<ArrayBuffer>;
@@ -137,7 +127,7 @@ export class AudioEngine {
   }
 
   getSnapshot(): AudioEngineSnapshot {
-    const stems = emptyStemRecord();
+    const stems: Record<string, StemPlaybackState> = {};
     for (const [name, stem] of this.stems) {
       stems[name] = {
         name: stem.name,
@@ -172,16 +162,6 @@ export class AudioEngine {
     this.loading = true;
     this.errors = [];
     this.emit();
-
-    const missingStems = STEM_ORDER.filter(
-      (requiredStem) => !song.stems.some((stem) => stem.name === requiredStem)
-    );
-    if (missingStems.length > 0) {
-      this.errors = missingStems.map((stem) => `${stem}: missing stem definition`);
-      this.loading = false;
-      this.emit();
-      throw new Error(this.errors.join('\n'));
-    }
 
     const loadResults = await Promise.allSettled(song.stems.map((stem) => this.loadStem(stem)));
     this.loading = false;

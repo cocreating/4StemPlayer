@@ -1,0 +1,54 @@
+{
+  "title": "Send His Love to Me",
+  "artist": "PJ Harvey",
+  "key": "C",
+  "bpm": 125,
+  "timeSignature": "4/4",
+  "chords": {
+    "intro": {
+      "progression": "Dm | C | Dm | C   x4"
+    },
+    "verse": {
+      "label": "Verse ",
+      "progression": "Dm | C | Dm | C   x4"
+    },
+    "chorus": {
+      "progression": "G | F   Dm | C | Dm | C   x2"
+    }
+  },
+  "notes": "...",
+  "sections": [
+    {
+      "label": "Verse 1",
+      "start": 20
+    },
+    {
+      "label": "Chorus",
+      "start": 36
+    },
+    {
+      "label": "Verse 2",
+      "start": 50
+    },
+    {
+      "label": "Chorus",
+      "start": 66.5
+    },
+    {
+      "label": "Verse 3",
+      "start": 82
+    },
+  {
+      "label": "Chorus",
+      "start": 96
+    },
+    {
+      "label": "Verse 4",
+      "start": 144
+    },
+    {
+      "label": "Chorus",
+      "start": 174
+    }
+  ]
+}

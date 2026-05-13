@@ -1,5 +1,3 @@
-import type { StemName } from './audio/AudioEngine';
-
 export interface SectionMarker {
   label: string;
   start: number;
@@ -38,8 +36,8 @@ export interface SongManifestEntry {
   timeSignature: string;
   songJsonUrl: string;
   lyricsUrl: string;
-  stems: Record<StemName, string>;
-  peaks?: Partial<Record<StemName, string>>;
+  stems: Record<string, string>;
+  peaks?: Partial<Record<string, string>>;
 }
 
 export interface SongManifest {

@@ -2,6 +2,7 @@ import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { dirname, extname, join } from 'node:path';
 
 export const REQUIRED_STEMS = ['bass', 'drums', 'vocals', 'other'] as const;
+export const PREFERRED_STEM_ORDER = ['vocals', 'drums', 'bass', 'other'] as const;
 
 export interface SongJson {
   title: string;
@@ -35,8 +36,8 @@ export interface SongManifestEntry {
   timeSignature: string;
   songJsonUrl: string;
   lyricsUrl: string;
-  stems: Record<(typeof REQUIRED_STEMS)[number], string>;
-  peaks?: Partial<Record<(typeof REQUIRED_STEMS)[number], string>>;
+  stems: Record<string, string>;
+  peaks?: Partial<Record<string, string>>;
 }
 
 export interface SongManifest {
@@ -111,4 +112,52 @@ export async function resolveStemFile(songDir: string, folder: string, title: st
 
 export function expectedStemFileNames(folder: string, title: string, stem: string) {
   return [stemFileName(folder, stem), stemFileName(title, stem)];
+}
+
+export function stemNameFromFileName(fileName: string) {
+  if (extname(fileName).toLowerCase() !== '.mp3') {
+    return null;
+  }
+
+  const stemSeparatorIndex = fileName.lastIndexOf('_');
+  if (stemSeparatorIndex === -1) {
+    return null;
+  }
+
+  const stem = fileName.slice(stemSeparatorIndex + 1, -extname(fileName).length);
+  return stem.trim() || null;
+}
+
+export async function listStemFiles(songDir: string, folder: string, title: string) {
+  const resolved = new Map<string, string>();
+
+  for (const stem of REQUIRED_STEMS) {
+    const fileName = await resolveStemFile(songDir, folder, title, stem);
+    if (fileName) {
+      resolved.set(stem, fileName);
+    }
+  }
+
+  const selectedFiles = new Set(resolved.values());
+  const extraStemEntries = (await readdir(songDir))
+    .flatMap((fileName) => {
+      if (selectedFiles.has(fileName)) {
+        return [];
+      }
+
+      const stem = stemNameFromFileName(fileName);
+      if (!stem || resolved.has(stem)) {
+        return [];
+      }
+
+      return [[stem, fileName] as const];
+    })
+    .sort(([leftStem], [rightStem]) => leftStem.localeCompare(rightStem));
+
+  const preferredEntries = REQUIRED_STEMS.flatMap((stem) => {
+    const fileName = resolved.get(stem);
+    return fileName ? [[stem, fileName] as const] : [];
+  });
+
+  return [...preferredEntries, ...extraStemEntries];
 }

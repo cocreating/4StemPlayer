@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { STEM_ORDER, type AudioEngineSnapshot, type StemName } from '$lib/audio/AudioEngine';
+  import { type AudioEngineSnapshot, type StemName } from '$lib/audio/AudioEngine';
+  import { orderedStemNames } from '$lib/songs';
   import type { SongManifestEntry } from '$lib/types';
   import StemRow from './StemRow.svelte';
 
@@ -22,20 +23,25 @@
     onVolume = () => {},
     onSeek = () => {}
   }: Props = $props();
+
+  let stemNames = $derived(orderedStemNames(manifestEntry.stems));
 </script>
 
 <section class="stem-mixer" aria-label="Stem mixer">
-  {#each STEM_ORDER as stemName}
-    <StemRow
-      stem={snapshot.stems[stemName]}
-      duration={snapshot.duration}
-      position={snapshot.position}
-      disabled={disabled}
-      peaksUrl={manifestEntry.peaks?.[stemName]}
-      onMute={(muted) => onMute(stemName, muted)}
-      onSolo={(solo) => onSolo(stemName, solo)}
-      onVolume={(volume) => onVolume(stemName, volume)}
-      onSeek={onSeek}
-    />
+  {#each stemNames as stemName}
+    {@const stem = snapshot.stems[stemName]}
+    {#if stem}
+      <StemRow
+        {stem}
+        duration={snapshot.duration}
+        position={snapshot.position}
+        disabled={disabled}
+        peaksUrl={manifestEntry.peaks?.[stemName]}
+        onMute={(muted) => onMute(stemName, muted)}
+        onSolo={(solo) => onSolo(stemName, solo)}
+        onVolume={(volume) => onVolume(stemName, volume)}
+        onSeek={onSeek}
+      />
+    {/if}
   {/each}
 </section>
