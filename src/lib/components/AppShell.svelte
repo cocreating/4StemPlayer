@@ -195,6 +195,7 @@
     <section class="player-grid" aria-label="Stem player">
       <div class="player-stack">
         <TransportBar
+          songTitle={selectedEntry?.title ?? ''}
           playing={engineSnapshot?.playing ?? false}
           position={engineSnapshot?.position ?? 0}
           duration={engineSnapshot?.duration ?? 0}

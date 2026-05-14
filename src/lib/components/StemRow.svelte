@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { StemPlaybackState } from '$lib/audio/AudioEngine';
+  import { stemDisclosureLabel } from '$lib/stemDisclosure';
   import WaveformView from './WaveformView.svelte';
 
   type Props = {
@@ -27,6 +28,9 @@
   }: Props = $props();
 
   let volumeId = $derived(`${stem.name}-volume`);
+  let expanded = $state(true);
+  let disclosureLabel = $derived(stemDisclosureLabel(stem.label, expanded));
+  let detailsId = $derived(`${stem.name}-details`);
 
   function handleVolumeInput(event: Event) {
     onVolume(Number((event.currentTarget as HTMLInputElement).value));
@@ -37,6 +41,21 @@
   <div class="stem-controls">
     <div class="stem-title">
       <h2>{stem.label}</h2>
+      <button
+        type="button"
+        class="stem-disclosure"
+        class:stem-disclosure-expanded={expanded}
+        role="switch"
+        aria-checked={expanded}
+        aria-controls={detailsId}
+        aria-label={disclosureLabel}
+        title={disclosureLabel}
+        onclick={() => {
+          expanded = !expanded;
+        }}
+      >
+        <span aria-hidden="true"></span>
+      </button>
       {#if stem.loading}
         <span class="stem-state" role="status">Loading</span>
       {:else if stem.error}
@@ -68,30 +87,32 @@
     </div>
   </div>
 
-  <WaveformView
-    stemName={stem.name}
-    url={stem.url}
-    {peaksUrl}
-    {position}
-    {duration}
-    loading={stem.loading}
-    error={stem.error}
-    onSeek={onSeek}
-  />
-
-  <div class="volume-control">
-    <label for={volumeId}>{stem.label} volume</label>
-    <input
-      id={volumeId}
-      type="range"
-      min="0"
-      max="1"
-      step="0.01"
-      value={stem.volume}
-      disabled={disabled || !stem.loaded}
-      oninput={handleVolumeInput}
+  <div id={detailsId} class="stem-details" hidden={!expanded}>
+    <WaveformView
+      stemName={stem.name}
+      url={stem.url}
+      {peaksUrl}
+      {position}
+      {duration}
+      loading={stem.loading}
+      error={stem.error}
+      onSeek={onSeek}
     />
-    <output for={volumeId}>{Math.round(stem.volume * 100)}%</output>
+
+    <div class="volume-control">
+      <label for={volumeId}>{stem.label} volume</label>
+      <input
+        id={volumeId}
+        type="range"
+        min="0"
+        max="1"
+        step="0.01"
+        value={stem.volume}
+        disabled={disabled || !stem.loaded}
+        oninput={handleVolumeInput}
+      />
+      <output for={volumeId}>{Math.round(stem.volume * 100)}%</output>
+    </div>
   </div>
 
   {#if stem.error}

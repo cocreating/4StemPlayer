@@ -51,6 +51,12 @@ The player remembers two local browser preferences:
 
 Both preferences are stored in `localStorage` on the user's browser. If a stored song is no longer present in the manifest, the player falls back to the first available song.
 
+## Player controls
+
+The transport panel displays the currently selected song title above the main Play and Stop buttons.
+
+Each stem row starts expanded. Use the switch beside the stem title to collapse or expand the waveform and volume controls for that stem.
+
 ## Vercel deployment
 
 This project uses a static build output configured to `build/`.
