@@ -42,6 +42,15 @@ npm install
 npm run build
 ```
 
+## Browser preferences
+
+The player remembers two local browser preferences:
+
+- the selected light or dark theme
+- the last selected song
+
+Both preferences are stored in `localStorage` on the user's browser. If a stored song is no longer present in the manifest, the player falls back to the first available song.
+
 ## Vercel deployment
 
 This project uses a static build output configured to `build/`.

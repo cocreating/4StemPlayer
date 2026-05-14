@@ -2,9 +2,17 @@
   import { onDestroy, onMount } from 'svelte';
   import { AudioEngine, type AudioEngineSnapshot } from '$lib/audio/AudioEngine';
   import { shouldHandlePlaybackShortcut } from '$lib/keyboard';
+  import {
+    readStoredTheme,
+    resolveInitialSongId,
+    saveSelectedSongId,
+    saveThemePreference,
+    type ThemeMode
+  } from '$lib/preferences';
   import { loadSongBundle, loadSongManifest, orderedStemNames, stemLabel } from '$lib/songs';
   import type { SongBundle, SongManifestEntry } from '$lib/types';
   import SongSelector from './SongSelector.svelte';
+  import ThemeToggle from './ThemeToggle.svelte';
   import StemMixer from './StemMixer.svelte';
   import TransportBar from './TransportBar.svelte';
   import SongInfoPanel from './SongInfoPanel.svelte';
@@ -20,6 +28,29 @@
   let manifestLoading = $state(true);
   let songLoading = $state(false);
   let appError = $state('');
+  let theme = $state<ThemeMode>('light');
+
+  function getBrowserStorage() {
+    try {
+      return typeof window === 'undefined' ? undefined : window.localStorage;
+    } catch {
+      return undefined;
+    }
+  }
+
+  function applyTheme(nextTheme: ThemeMode) {
+    theme = nextTheme;
+
+    if (typeof document !== 'undefined') {
+      document.documentElement.dataset.theme = nextTheme;
+    }
+  }
+
+  function toggleTheme() {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    applyTheme(nextTheme);
+    saveThemePreference(getBrowserStorage(), nextTheme);
+  }
 
   async function boot() {
     manifestLoading = true;
@@ -28,8 +59,9 @@
     try {
       const manifest = await loadSongManifest();
       songs = manifest.songs;
-      if (songs.length > 0) {
-        await selectSong(songs[0].id);
+      const initialSongId = resolveInitialSongId(songs, getBrowserStorage());
+      if (initialSongId) {
+        await selectSong(initialSongId);
       }
     } catch (error) {
       appError = error instanceof Error ? error.message : String(error);
@@ -49,6 +81,7 @@
     selectedSongId = songId;
     selectedEntry = nextEntry;
     songBundle = null;
+    saveSelectedSongId(getBrowserStorage(), songId);
 
     unsubscribe?.();
     engine?.destroy();
@@ -115,6 +148,7 @@
   }
 
   onMount(() => {
+    applyTheme(readStoredTheme(getBrowserStorage()));
     void boot();
     window.addEventListener('keydown', handleKeydown);
 
@@ -135,12 +169,15 @@
       <p class="eyebrow">🐧PENGUINS🌈</p>
       <h1 id="app-title">4Stem Band Player</h1>
     </div>
-    <SongSelector
-      {songs}
-      selectedId={selectedSongId}
-      loading={manifestLoading || songLoading}
-      onSelect={selectSong}
-    />
+    <div class="app-header-actions">
+      <ThemeToggle {theme} toggle={toggleTheme} />
+      <SongSelector
+        {songs}
+        selectedId={selectedSongId}
+        loading={manifestLoading || songLoading}
+        onSelect={selectSong}
+      />
+    </div>
   </header>
 
   {#if appError}
