@@ -25,44 +25,28 @@
   "notes": "Italian pop single from 1968, written by Franco Migliacci, Bruno Zambrini, and Ruggero Cini. Artist spelling is Patty Pravo; some file/source names use Patty Bravo.",
   "sections": [
     {
-      "label": "Intro",
-      "start": 0
+      "label": "Strofa 1",
+      "start": 16
     },
     {
-      "label": "Verse 1",
-      "start": 9
+      "label": "Strofa 2",
+      "start": 51
     },
     {
-      "label": "Refrain 1",
-      "start": 28
+      "label": "Ritornello",
+      "start": 86
     },
     {
-      "label": "Verse 2",
-      "start": 45
+      "label": "Strofa 3",
+      "start": 108
     },
     {
-      "label": "Refrain 2",
-      "start": 64
+      "label": "Ritornello",
+      "start": 142
     },
     {
-      "label": "Instrumental",
-      "start": 82
-    },
-    {
-      "label": "Verse 3",
-      "start": 101
-    },
-    {
-      "label": "Refrain 3",
-      "start": 121
-    },
-    {
-      "label": "Final Refrain",
-      "start": 144
-    },
-    {
-      "label": "Outro",
-      "start": 166
+      "label": "Strofa 4",
+      "start": 162
     }
   ]
 }

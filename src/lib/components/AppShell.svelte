@@ -132,7 +132,7 @@
 <main class="app-shell">
   <header class="app-header" aria-labelledby="app-title">
     <div>
-      <p class="eyebrow">Technical spike</p>
+      <p class="eyebrow">🐧PENGUINS🌈</p>
       <h1 id="app-title">4Stem Band Player</h1>
     </div>
     <SongSelector
