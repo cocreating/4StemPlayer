@@ -29,6 +29,17 @@ async function writeValidSong(root: string, folder = 'GloryBox') {
   return songDir;
 }
 
+async function writeValidSongWithoutOther(root: string, folder = 'GloryBox') {
+  const songDir = join(root, folder);
+  await mkdir(songDir, { recursive: true });
+  await writeFile(join(songDir, 'song.json'), JSON.stringify(songJson, null, 2));
+  await writeFile(join(songDir, 'lyrics.md'), '# Glory Box\n\nGive me a reason\n');
+  for (const stem of ['bass', 'drums', 'vocals']) {
+    await writeFile(join(songDir, `${folder}_${stem}.mp3`), 'fake mp3');
+  }
+  return songDir;
+}
+
 async function writeValidSongWithTitlePrefixedStems(root: string, folder = 'GloryBox') {
   const songDir = join(root, folder);
   await mkdir(songDir, { recursive: true });
@@ -95,6 +106,21 @@ describe('song scripts', () => {
       drums: '/songs/GloryBox/Glory%20Box_drums.mp3',
       vocals: '/songs/GloryBox/Glory%20Box_vocals.mp3',
       other: '/songs/GloryBox/Glory%20Box_other.mp3'
+    });
+  });
+
+  it('accepts songs without an optional other stem', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'songs-'));
+    await writeValidSongWithoutOther(root);
+
+    const result = await validateSongs(root);
+    const manifest = await createSongManifest(root);
+
+    expect(result.ok).toBe(true);
+    expect(manifest.songs[0]?.stems).toEqual({
+      bass: '/songs/GloryBox/GloryBox_bass.mp3',
+      drums: '/songs/GloryBox/GloryBox_drums.mp3',
+      vocals: '/songs/GloryBox/GloryBox_vocals.mp3'
     });
   });
 

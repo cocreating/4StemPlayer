@@ -1,4 +1,4 @@
-export const STEM_ORDER = ['vocals', 'drums', 'bass', 'other'] as const;
+export const STEM_ORDER = ['vocals', 'guitar', 'strings', 'drums', 'bass', 'fx', 'other'] as const;
 
 export type StemName = string;
 

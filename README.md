@@ -14,18 +14,20 @@ lyrics.md
 <SongFolder>_bass.mp3
 <SongFolder>_drums.mp3
 <SongFolder>_vocals.mp3
-<SongFolder>_other.mp3
 ```
 
-The four core stems are required. Extra stems are optional and are discovered automatically when they follow the same suffix pattern:
+The required stems are `bass`, `drums`, and `vocals`. `other` and any additional stems are optional and are discovered automatically when they follow the same suffix pattern:
 
 ```text
+<SongFolder>_other.mp3
 <SongFolder>_keyboards.mp3
 <SongFolder>_guitar.mp3
 <SongFolder>_other2.mp3
 ```
 
-Core stems render first in the player, followed by extra stems in alphabetical order.
+Preferred stems render first in the player when present. Any future stems that are not in the preferred order still appear automatically after those stems.
+
+To remove an optional stem from one song, delete its `.mp3` and matching `.peaks.json` file from `static/songs/<SongFolder>/`, then run `npm run songs:prepare` and `npm run build`.
 
 After adding or replacing song files, run:
 
