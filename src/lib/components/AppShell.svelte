@@ -2,9 +2,19 @@
   import { onDestroy, onMount } from 'svelte';
   import { AudioEngine, type AudioEngineSnapshot } from '$lib/audio/AudioEngine';
   import { shouldHandlePlaybackShortcut } from '$lib/keyboard';
+  import { loadingFeedbackText } from '$lib/loadingFeedback';
+  import {
+    readStoredTheme,
+    resolveInitialSongId,
+    saveSelectedSongId,
+    saveThemePreference,
+    type ThemeMode
+  } from '$lib/preferences';
   import { loadSongBundle, loadSongManifest, orderedStemNames, stemLabel } from '$lib/songs';
   import type { SongBundle, SongManifestEntry } from '$lib/types';
+  import LoadingPanel from './LoadingPanel.svelte';
   import SongSelector from './SongSelector.svelte';
+  import ThemeToggle from './ThemeToggle.svelte';
   import StemMixer from './StemMixer.svelte';
   import TransportBar from './TransportBar.svelte';
   import SongInfoPanel from './SongInfoPanel.svelte';
@@ -20,6 +30,31 @@
   let manifestLoading = $state(true);
   let songLoading = $state(false);
   let appError = $state('');
+  let theme = $state<ThemeMode>('light');
+  let manifestFeedback = $derived(loadingFeedbackText('manifest'));
+  let songFeedback = $derived(loadingFeedbackText('song', selectedEntry?.title));
+
+  function getBrowserStorage() {
+    try {
+      return typeof window === 'undefined' ? undefined : window.localStorage;
+    } catch {
+      return undefined;
+    }
+  }
+
+  function applyTheme(nextTheme: ThemeMode) {
+    theme = nextTheme;
+
+    if (typeof document !== 'undefined') {
+      document.documentElement.dataset.theme = nextTheme;
+    }
+  }
+
+  function toggleTheme() {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    applyTheme(nextTheme);
+    saveThemePreference(getBrowserStorage(), nextTheme);
+  }
 
   async function boot() {
     manifestLoading = true;
@@ -28,8 +63,9 @@
     try {
       const manifest = await loadSongManifest();
       songs = manifest.songs;
-      if (songs.length > 0) {
-        await selectSong(songs[0].id);
+      const initialSongId = resolveInitialSongId(songs, getBrowserStorage());
+      if (initialSongId) {
+        await selectSong(initialSongId);
       }
     } catch (error) {
       appError = error instanceof Error ? error.message : String(error);
@@ -49,6 +85,7 @@
     selectedSongId = songId;
     selectedEntry = nextEntry;
     songBundle = null;
+    saveSelectedSongId(getBrowserStorage(), songId);
 
     unsubscribe?.();
     engine?.destroy();
@@ -115,6 +152,7 @@
   }
 
   onMount(() => {
+    applyTheme(readStoredTheme(getBrowserStorage()));
     void boot();
     window.addEventListener('keydown', handleKeydown);
 
@@ -135,12 +173,15 @@
       <p class="eyebrow">🐧PENGUINS🌈</p>
       <h1 id="app-title">4Stem Band Player</h1>
     </div>
-    <SongSelector
-      {songs}
-      selectedId={selectedSongId}
-      loading={manifestLoading || songLoading}
-      onSelect={selectSong}
-    />
+    <div class="app-header-actions">
+      <ThemeToggle {theme} toggle={toggleTheme} />
+      <SongSelector
+        {songs}
+        selectedId={selectedSongId}
+        loading={manifestLoading || songLoading}
+        onSelect={selectSong}
+      />
+    </div>
   </header>
 
   {#if appError}
@@ -151,13 +192,14 @@
   {/if}
 
   {#if manifestLoading}
-    <section class="status" aria-live="polite">Loading song manifest...</section>
+    <LoadingPanel title={manifestFeedback.title} description={manifestFeedback.description} />
   {:else if songs.length === 0}
     <section class="status" role="status">No songs were found in /songs/manifest.json.</section>
   {:else}
     <section class="player-grid" aria-label="Stem player">
       <div class="player-stack">
         <TransportBar
+          songTitle={selectedEntry?.title ?? ''}
           playing={engineSnapshot?.playing ?? false}
           position={engineSnapshot?.position ?? 0}
           duration={engineSnapshot?.duration ?? 0}
@@ -186,7 +228,7 @@
           <SongInfoPanel metadata={songBundle.metadata} engineDuration={engineSnapshot?.duration} onSeek={seek} />
           <LyricsViewer lyrics={songBundle.lyricsMarkdown || songBundle.metadata.lyrics || ''} />
         {:else}
-          <section class="panel">Loading song information...</section>
+          <LoadingPanel title={songFeedback.title} description={songFeedback.description} />
         {/if}
       </aside>
     </section>

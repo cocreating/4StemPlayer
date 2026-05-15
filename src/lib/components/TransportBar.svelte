@@ -1,7 +1,9 @@
 <script lang="ts">
   import { formatDurationSeconds, formatTime } from '$lib/songs';
+  import { displayTransportSongTitle } from '$lib/transport';
 
   type Props = {
+    songTitle?: string;
     playing?: boolean;
     position?: number;
     duration?: number;
@@ -13,6 +15,7 @@
   };
 
   let {
+    songTitle = '',
     playing = false,
     position = 0,
     duration = 0,
@@ -23,6 +26,7 @@
     onSeek = () => {}
   }: Props = $props();
 
+  let currentSongTitle = $derived(displayTransportSongTitle(songTitle));
   let progressLabel = $derived(`${formatTime(position)} of ${formatTime(duration)}`);
   let positionSecondsLabel = $derived(`${formatDurationSeconds(position)} seconds`);
 
@@ -32,17 +36,23 @@
 </script>
 
 <section class="transport-bar panel" aria-label="Transport controls">
-  <div class="transport-actions">
-    {#if playing}
-      <button type="button" class="primary-action" disabled={disabled} onclick={onPause}>
-        Pause
-      </button>
-    {:else}
-      <button type="button" class="primary-action" disabled={disabled} onclick={onPlay}>
-        Play
-      </button>
+  <div class="transport-command-stack">
+    {#if currentSongTitle}
+      <h2 class="transport-song-title">{currentSongTitle}</h2>
     {/if}
-    <button type="button" disabled={disabled} onclick={onStop}>Stop</button>
+
+    <div class="transport-actions">
+      {#if playing}
+        <button type="button" class="primary-action" disabled={disabled} onclick={onPause}>
+          Pause
+        </button>
+      {:else}
+        <button type="button" class="primary-action" disabled={disabled} onclick={onPlay}>
+          Play
+        </button>
+      {/if}
+      <button type="button" disabled={disabled} onclick={onStop}>Stop</button>
+    </div>
   </div>
 
   <div class="transport-seek">

@@ -8,6 +8,15 @@
       content="A static four-stem rehearsal player for synchronized band practice."
     />
     <link rel="icon" href="/favicon.svg" />
+    <script>
+      (() => {
+        try {
+          if (localStorage.getItem('4stem-player:theme') === 'dark') {
+            document.documentElement.dataset.theme = 'dark';
+          }
+        } catch {}
+      })();
+    </script>
     %sveltekit.head%
   </head>
   <body data-sveltekit-preload-data="hover">

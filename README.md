@@ -42,6 +42,23 @@ npm install
 npm run build
 ```
 
+## Browser preferences
+
+The player remembers two local browser preferences:
+
+- the selected light or dark theme
+- the last selected song
+
+Both preferences are stored in `localStorage` on the user's browser. If a stored song is no longer present in the manifest, the player falls back to the first available song.
+
+## Player controls
+
+The transport panel displays the currently selected song title above the main Play and Stop buttons.
+
+Each stem row starts expanded. Use the right-aligned switch in the stem controls to collapse or expand the waveform and volume controls for that stem.
+
+Loading states use an indeterminate progress bar and skeleton placeholders while the song library, metadata, lyrics, stems, and waveforms are being prepared.
+
 ## Vercel deployment
 
 This project uses a static build output configured to `build/`.
