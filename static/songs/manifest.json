@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-15T11:56:31.501Z",
+  "generatedAt": "2026-05-15T17:52:30.210Z",
   "songs": [
     {
       "id": "Bambola",
@@ -38,15 +38,15 @@
         "bass": "/songs/GloryBox/GloryBox_bass.mp3",
         "drums": "/songs/GloryBox/GloryBox_drums.mp3",
         "vocals": "/songs/GloryBox/GloryBox_vocals.mp3",
-        "other": "/songs/GloryBox/GloryBox_other.mp3",
-        "other2": "/songs/GloryBox/GloryBox_other2.mp3"
+        "guitar": "/songs/GloryBox/GloryBox_guitar.mp3",
+        "strings": "/songs/GloryBox/GloryBox_strings.mp3"
       },
       "peaks": {
         "bass": "/songs/GloryBox/GloryBox_bass.peaks.json",
         "drums": "/songs/GloryBox/GloryBox_drums.peaks.json",
         "vocals": "/songs/GloryBox/GloryBox_vocals.peaks.json",
-        "other": "/songs/GloryBox/GloryBox_other.peaks.json",
-        "other2": "/songs/GloryBox/GloryBox_other2.peaks.json"
+        "guitar": "/songs/GloryBox/GloryBox_guitar.peaks.json",
+        "strings": "/songs/GloryBox/GloryBox_strings.peaks.json"
       }
     },
     {
@@ -88,7 +88,6 @@
         "vocals": "/songs/SendHLTMe/SendHLTMe_vocals.mp3",
         "fx": "/songs/SendHLTMe/SendHLTMe_fx.mp3",
         "guitar": "/songs/SendHLTMe/SendHLTMe_guitar.mp3",
-        "other": "/songs/SendHLTMe/SendHLTMe_other.mp3",
         "strings": "/songs/SendHLTMe/SendHLTMe_strings.mp3"
       },
       "peaks": {
@@ -97,7 +96,6 @@
         "vocals": "/songs/SendHLTMe/SendHLTMe_vocals.peaks.json",
         "fx": "/songs/SendHLTMe/SendHLTMe_fx.peaks.json",
         "guitar": "/songs/SendHLTMe/SendHLTMe_guitar.peaks.json",
-        "other": "/songs/SendHLTMe/SendHLTMe_other.peaks.json",
         "strings": "/songs/SendHLTMe/SendHLTMe_strings.peaks.json"
       }
     }
