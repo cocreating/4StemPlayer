@@ -1,8 +1,8 @@
 import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { dirname, extname, join } from 'node:path';
 
-export const REQUIRED_STEMS = ['bass', 'drums', 'vocals', 'other'] as const;
-export const PREFERRED_STEM_ORDER = ['vocals', 'drums', 'bass', 'other'] as const;
+export const REQUIRED_STEMS = ['bass', 'drums', 'vocals'] as const;
+export const PREFERRED_STEM_ORDER = ['vocals', 'guitar', 'strings', 'drums', 'bass', 'fx', 'other'] as const;
 
 export interface SongJson {
   title: string;
