@@ -2,6 +2,7 @@
   import { onDestroy, onMount } from 'svelte';
   import { AudioEngine, type AudioEngineSnapshot } from '$lib/audio/AudioEngine';
   import { shouldHandlePlaybackShortcut } from '$lib/keyboard';
+  import { loadingFeedbackText } from '$lib/loadingFeedback';
   import {
     readStoredTheme,
     resolveInitialSongId,
@@ -11,6 +12,7 @@
   } from '$lib/preferences';
   import { loadSongBundle, loadSongManifest, orderedStemNames, stemLabel } from '$lib/songs';
   import type { SongBundle, SongManifestEntry } from '$lib/types';
+  import LoadingPanel from './LoadingPanel.svelte';
   import SongSelector from './SongSelector.svelte';
   import ThemeToggle from './ThemeToggle.svelte';
   import StemMixer from './StemMixer.svelte';
@@ -29,6 +31,8 @@
   let songLoading = $state(false);
   let appError = $state('');
   let theme = $state<ThemeMode>('light');
+  let manifestFeedback = $derived(loadingFeedbackText('manifest'));
+  let songFeedback = $derived(loadingFeedbackText('song', selectedEntry?.title));
 
   function getBrowserStorage() {
     try {
@@ -188,7 +192,7 @@
   {/if}
 
   {#if manifestLoading}
-    <section class="status" aria-live="polite">Loading song manifest...</section>
+    <LoadingPanel title={manifestFeedback.title} description={manifestFeedback.description} />
   {:else if songs.length === 0}
     <section class="status" role="status">No songs were found in /songs/manifest.json.</section>
   {:else}
@@ -224,7 +228,7 @@
           <SongInfoPanel metadata={songBundle.metadata} engineDuration={engineSnapshot?.duration} onSeek={seek} />
           <LyricsViewer lyrics={songBundle.lyricsMarkdown || songBundle.metadata.lyrics || ''} />
         {:else}
-          <section class="panel">Loading song information...</section>
+          <LoadingPanel title={songFeedback.title} description={songFeedback.description} />
         {/if}
       </aside>
     </section>

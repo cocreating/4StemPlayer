@@ -11,7 +11,7 @@
   --muted: #59635f;
   --line: #ccd6d0;
   --line-strong: #97a9a0;
-  --accent: #0f766e;
+  --accent: #98ba1c;
   --accent-strong: #0b5f59;
   --accent-soft: #d8f0ec;
   --accent-ink: #ffffff;
@@ -329,6 +329,80 @@ pre {
   color: var(--danger-ink);
 }
 
+.loading-panel {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.loading-copy h2 {
+  margin-bottom: 0.25rem;
+  font-size: 1.08rem;
+}
+
+.loading-copy p {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.loading-progress {
+  position: relative;
+  height: 0.58rem;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-strong);
+}
+
+.loading-progress span {
+  position: absolute;
+  inset-block: 0;
+  left: -42%;
+  width: 42%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  animation: loading-bar 1.15s ease-in-out infinite;
+}
+
+.loading-skeleton {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.loading-skeleton span {
+  height: 0.9rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--surface-strong), var(--accent-soft), var(--surface-strong));
+  background-size: 220% 100%;
+  animation: loading-sheen 1.35s ease-in-out infinite;
+}
+
+.loading-skeleton span:nth-child(2) {
+  width: 82%;
+}
+
+.loading-skeleton span:nth-child(3) {
+  width: 56%;
+}
+
+@keyframes loading-bar {
+  to {
+    left: 100%;
+  }
+}
+
+@keyframes loading-sheen {
+  0% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: -120% 0;
+  }
+}
+
 .player-grid,
 .player-stack,
 .info-stack,
@@ -406,21 +480,31 @@ button.active::after {
 
 .stem-controls {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "title state"
+    "buttons buttons";
+  align-items: center;
   gap: 0.7rem;
 }
 
 .stem-title {
-  display: grid;
-  grid-template-columns: minmax(0, auto) auto auto;
-  align-items: center;
-  justify-content: start;
-  gap: 0.55rem;
+  grid-area: title;
+  min-width: 0;
 }
 
 .stem-title h2 {
   margin-bottom: 0;
   font-size: 1.05rem;
   overflow-wrap: anywhere;
+}
+
+.stem-control-state {
+  grid-area: state;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.55rem;
 }
 
 .stem-disclosure {
@@ -488,6 +572,7 @@ button.active::after {
 
 .stem-buttons {
   display: grid;
+  grid-area: buttons;
   grid-template-columns: 1fr 1fr;
   gap: 0.6rem;
 }
@@ -646,8 +731,13 @@ button.active::after {
 
 @media (min-width: 50em) {
   .stem-controls {
-    grid-template-columns: minmax(8rem, 12rem) minmax(12rem, 14rem);
+    grid-template-columns: minmax(8rem, 12rem) minmax(12rem, 14rem) auto;
+    grid-template-areas: "title buttons state";
     align-items: center;
+  }
+
+  .stem-control-state {
+    justify-self: end;
   }
 
   .volume-control {

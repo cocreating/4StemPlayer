@@ -41,28 +41,6 @@
   <div class="stem-controls">
     <div class="stem-title">
       <h2>{stem.label}</h2>
-      <button
-        type="button"
-        class="stem-disclosure"
-        class:stem-disclosure-expanded={expanded}
-        role="switch"
-        aria-checked={expanded}
-        aria-controls={detailsId}
-        aria-label={disclosureLabel}
-        title={disclosureLabel}
-        onclick={() => {
-          expanded = !expanded;
-        }}
-      >
-        <span aria-hidden="true"></span>
-      </button>
-      {#if stem.loading}
-        <span class="stem-state" role="status">Loading</span>
-      {:else if stem.error}
-        <span class="stem-state error-text">Error</span>
-      {:else if stem.loaded}
-        <span class="stem-state">Ready</span>
-      {/if}
     </div>
 
     <div class="stem-buttons" aria-label={`${stem.label} controls`}>
@@ -84,6 +62,32 @@
       >
         Solo
       </button>
+    </div>
+
+    <div class="stem-control-state">
+      <button
+        type="button"
+        class="stem-disclosure"
+        class:stem-disclosure-expanded={expanded}
+        role="switch"
+        aria-checked={expanded}
+        aria-controls={detailsId}
+        aria-label={disclosureLabel}
+        title={disclosureLabel}
+        onclick={() => {
+          expanded = !expanded;
+        }}
+      >
+        <span aria-hidden="true"></span>
+      </button>
+
+      {#if stem.loading}
+        <span class="stem-state" role="status">Loading</span>
+      {:else if stem.error}
+        <span class="stem-state error-text">Error</span>
+      {:else if stem.loaded}
+        <span class="stem-state">Ready</span>
+      {/if}
     </div>
   </div>
 

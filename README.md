@@ -55,7 +55,9 @@ Both preferences are stored in `localStorage` on the user's browser. If a stored
 
 The transport panel displays the currently selected song title above the main Play and Stop buttons.
 
-Each stem row starts expanded. Use the switch beside the stem title to collapse or expand the waveform and volume controls for that stem.
+Each stem row starts expanded. Use the right-aligned switch in the stem controls to collapse or expand the waveform and volume controls for that stem.
+
+Loading states use an indeterminate progress bar and skeleton placeholders while the song library, metadata, lyrics, stems, and waveforms are being prepared.
 
 ## Vercel deployment
 
