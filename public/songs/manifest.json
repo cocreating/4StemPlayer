@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-15T17:52:30.210Z",
+  "generatedAt": "2026-05-16T01:11:21.969Z",
   "songs": [
     {
       "id": "Bambola",
@@ -15,13 +15,17 @@
         "bass": "/songs/Bambola/Bambola_bass.mp3",
         "drums": "/songs/Bambola/Bambola_drums.mp3",
         "vocals": "/songs/Bambola/Bambola_vocals.mp3",
-        "other": "/songs/Bambola/Bambola_other.mp3"
+        "guitar": "/songs/Bambola/Bambola_guitar.mp3",
+        "piano": "/songs/Bambola/Bambola_piano.mp3",
+        "strings": "/songs/Bambola/Bambola_strings.mp3"
       },
       "peaks": {
         "bass": "/songs/Bambola/Bambola_bass.peaks.json",
         "drums": "/songs/Bambola/Bambola_drums.peaks.json",
         "vocals": "/songs/Bambola/Bambola_vocals.peaks.json",
-        "other": "/songs/Bambola/Bambola_other.peaks.json"
+        "guitar": "/songs/Bambola/Bambola_guitar.peaks.json",
+        "piano": "/songs/Bambola/Bambola_piano.peaks.json",
+        "strings": "/songs/Bambola/Bambola_strings.peaks.json"
       }
     },
     {

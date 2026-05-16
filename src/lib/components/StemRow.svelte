@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { StemPlaybackState } from '$lib/audio/AudioEngine';
-  import { stemDisclosureLabel } from '$lib/stemDisclosure';
+  import { shouldToggleStemDisclosureFromClick, stemDisclosureLabel } from '$lib/stemDisclosure';
   import WaveformView from './WaveformView.svelte';
 
   type Props = {
@@ -28,16 +28,26 @@
   }: Props = $props();
 
   let volumeId = $derived(`${stem.name}-volume`);
-  let expanded = $state(true);
+  let expanded = $state(false);
   let disclosureLabel = $derived(stemDisclosureLabel(stem.label, expanded));
   let detailsId = $derived(`${stem.name}-details`);
 
   function handleVolumeInput(event: Event) {
     onVolume(Number((event.currentTarget as HTMLInputElement).value));
   }
+
+  function toggleExpanded() {
+    expanded = !expanded;
+  }
+
+  function handleRowPointerUp(event: PointerEvent) {
+    if (shouldToggleStemDisclosureFromClick(event.target, event.currentTarget)) {
+      toggleExpanded();
+    }
+  }
 </script>
 
-<article class:error-row={Boolean(stem.error)} class="stem-row">
+<article class:error-row={Boolean(stem.error)} class="stem-row" onpointerup={handleRowPointerUp}>
   <div class="stem-controls">
     <div class="stem-title">
       <h2>{stem.label}</h2>
@@ -74,8 +84,10 @@
         aria-controls={detailsId}
         aria-label={disclosureLabel}
         title={disclosureLabel}
-        onclick={() => {
-          expanded = !expanded;
+        onpointerup={(event) => event.stopPropagation()}
+        onclick={(event) => {
+          event.stopPropagation();
+          toggleExpanded();
         }}
       >
         <span aria-hidden="true"></span>

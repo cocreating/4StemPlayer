@@ -57,9 +57,13 @@ Both preferences are stored in `localStorage` on the user's browser. If a stored
 
 The transport panel displays the currently selected song title above the main Play and Stop buttons.
 
-Each stem row starts expanded. Use the right-aligned switch in the stem controls to collapse or expand the waveform and volume controls for that stem.
+Each stem row starts collapsed. Use the right-aligned switch in the stem controls to expand or collapse the waveform and volume controls for that stem.
 
 Loading states use an indeterminate progress bar and skeleton placeholders while the song library, metadata, lyrics, stems, and waveforms are being prepared.
+
+## Transpose approach
+
+Future transpose controls should keep the current zero-cost playback path when no pitch shift is active. Global transpose should apply only to harmonic stems, not drums, and per-stem pitch correction should also be disabled for drums. When pitch shift is active, use a tempo-preserving pitch processor in the Web Audio graph rather than native `AudioBufferSourceNode.detune`, because detune changes playback rate and can desync stems.
 
 ## Vercel deployment
 
