@@ -55,7 +55,7 @@ Both preferences are stored in `localStorage` on the user's browser. If a stored
 
 ## Player controls
 
-The transport panel displays the currently selected song title above the main Play and Stop buttons.
+The transport panel displays the currently selected song title above the main Play, Stop, and Sections buttons. Songs with section markers enable the Sections button; pressing it opens a floating panel below the transport controls with seek buttons for each marker. The panel can be closed with its top-right close button.
 
 Each stem row starts collapsed. Use the right-aligned switch in the stem controls to expand or collapse the waveform and volume controls for that stem.
 

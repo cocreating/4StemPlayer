@@ -17,6 +17,7 @@
   import ThemeToggle from './ThemeToggle.svelte';
   import StemMixer from './StemMixer.svelte';
   import TransportBar from './TransportBar.svelte';
+  import SectionsPopover from './SectionsPopover.svelte';
   import SongInfoPanel from './SongInfoPanel.svelte';
   import LyricsViewer from './LyricsViewer.svelte';
 
@@ -31,8 +32,10 @@
   let songLoading = $state(false);
   let appError = $state('');
   let theme = $state<ThemeMode>('light');
+  let sectionsOpen = $state(false);
   let manifestFeedback = $derived(loadingFeedbackText('manifest'));
   let songFeedback = $derived(loadingFeedbackText('song', selectedEntry?.title));
+  let sectionMarkers = $derived(songBundle?.metadata.sections ?? []);
 
   function getBrowserStorage() {
     try {
@@ -85,6 +88,7 @@
     selectedSongId = songId;
     selectedEntry = nextEntry;
     songBundle = null;
+    sectionsOpen = false;
     saveSelectedSongId(getBrowserStorage(), songId);
 
     unsubscribe?.();
@@ -140,6 +144,16 @@
 
   function correctStemPitch(name: StemName, delta: number) {
     void engine?.adjustStemPitchCorrection(name, delta);
+  }
+
+  function toggleSections() {
+    if (sectionMarkers.length > 0) {
+      sectionsOpen = !sectionsOpen;
+    }
+  }
+
+  function closeSections() {
+    sectionsOpen = false;
   }
 
   function togglePlayback() {
@@ -210,20 +224,31 @@
   {:else}
     <section class="player-grid" aria-label="Stem player">
       <div class="player-stack">
-        <TransportBar
-          songTitle={selectedEntry?.title ?? ''}
-          playing={engineSnapshot?.playing ?? false}
-          position={engineSnapshot?.position ?? 0}
-          duration={engineSnapshot?.duration ?? 0}
-          transposeSemitones={engineSnapshot?.globalTransposeSemitones ?? 0}
-          disabled={!engineSnapshot || songLoading || (engineSnapshot.errors.length > 0)}
-          onPlay={play}
-          onPause={pause}
-          onStop={stop}
-          onSeek={seek}
-          onTranspose={transpose}
-          onTransposeReset={resetTranspose}
-        />
+        <div class="transport-shell">
+          <TransportBar
+            songTitle={selectedEntry?.title ?? ''}
+            playing={engineSnapshot?.playing ?? false}
+            position={engineSnapshot?.position ?? 0}
+            duration={engineSnapshot?.duration ?? 0}
+            transposeSemitones={engineSnapshot?.globalTransposeSemitones ?? 0}
+            sectionsOpen={sectionsOpen}
+            hasSections={sectionMarkers.length > 0}
+            disabled={!engineSnapshot || songLoading || (engineSnapshot.errors.length > 0)}
+            onPlay={play}
+            onPause={pause}
+            onStop={stop}
+            onSeek={seek}
+            onTranspose={transpose}
+            onTransposeReset={resetTranspose}
+            onSectionsToggle={toggleSections}
+          />
+          <SectionsPopover
+            sections={sectionMarkers}
+            open={sectionsOpen}
+            onClose={closeSections}
+            onSeek={seek}
+          />
+        </div>
 
         {#if selectedEntry && engineSnapshot}
           <StemMixer
@@ -241,7 +266,7 @@
 
       <aside class="info-stack" aria-label="Song information">
         {#if songBundle}
-          <SongInfoPanel metadata={songBundle.metadata} engineDuration={engineSnapshot?.duration} onSeek={seek} />
+          <SongInfoPanel metadata={songBundle.metadata} engineDuration={engineSnapshot?.duration} />
           <LyricsViewer lyrics={songBundle.lyricsMarkdown || songBundle.metadata.lyrics || ''} />
         {:else}
           <LoadingPanel title={songFeedback.title} description={songFeedback.description} />

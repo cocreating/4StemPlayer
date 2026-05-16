@@ -9,6 +9,8 @@
     position?: number;
     duration?: number;
     transposeSemitones?: number;
+    sectionsOpen?: boolean;
+    hasSections?: boolean;
     disabled?: boolean;
     onPlay?: () => void;
     onPause?: () => void;
@@ -16,6 +18,7 @@
     onSeek?: (time: number) => void;
     onTranspose?: (delta: number) => void;
     onTransposeReset?: () => void;
+    onSectionsToggle?: () => void;
   };
 
   let {
@@ -24,13 +27,16 @@
     position = 0,
     duration = 0,
     transposeSemitones = 0,
+    sectionsOpen = false,
+    hasSections = false,
     disabled = false,
     onPlay = () => {},
     onPause = () => {},
     onStop = () => {},
     onSeek = () => {},
     onTranspose = () => {},
-    onTransposeReset = () => {}
+    onTransposeReset = () => {},
+    onSectionsToggle = () => {}
   }: Props = $props();
 
   let currentSongTitle = $derived(displayTransportSongTitle(songTitle));
@@ -60,6 +66,16 @@
         </button>
       {/if}
       <button type="button" disabled={disabled} onclick={onStop}>Stop</button>
+      <button
+        type="button"
+        class:sections-action-open={sectionsOpen}
+        disabled={disabled || !hasSections}
+        aria-controls="sections-popover"
+        aria-expanded={sectionsOpen}
+        onclick={onSectionsToggle}
+      >
+        Sections
+      </button>
     </div>
 
     <div class="transpose-control" aria-label="Global transpose for non-drum tracks">

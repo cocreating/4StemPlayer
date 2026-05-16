@@ -5,10 +5,9 @@
   type Props = {
     metadata: SongMetadata;
     engineDuration?: number;
-    onSeek?: (time: number) => void;
   };
 
-  let { metadata, engineDuration = 0, onSeek = () => {} }: Props = $props();
+  let { metadata, engineDuration = 0 }: Props = $props();
 
   let chordText = $derived(formatChords(metadata.chords));
   let durationText = $derived(metadata.duration || (engineDuration > 0 ? formatTime(engineDuration) : ''));
@@ -65,20 +64,6 @@
     <section class="info-section" aria-labelledby="notes-title">
       <h3 id="notes-title">Notes</h3>
       <p>{metadata.notes}</p>
-    </section>
-  {/if}
-
-  {#if metadata.sections?.length}
-    <section class="info-section" aria-labelledby="sections-title">
-      <h3 id="sections-title">Sections</h3>
-      <div class="section-list">
-        {#each metadata.sections as section}
-          <button type="button" class="section-marker" onclick={() => onSeek(section.start)}>
-            <span>{section.label}</span>
-            <span>{formatTime(section.start)}</span>
-          </button>
-        {/each}
-      </div>
     </section>
   {/if}
 </section>
