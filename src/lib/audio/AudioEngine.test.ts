@@ -261,6 +261,45 @@ describe('AudioEngine', () => {
     });
   });
 
+  it('realigns individual stem transpose values when global transpose changes', async () => {
+    const { engine } = makeEngineWithPitchShift();
+    await engine.loadSong({
+      id: 'glorybox',
+      title: 'Glory Box',
+      stems: stemNames.map((name) => ({ name, label: name, url: `${name}.mp3` }))
+    });
+
+    await engine.setGlobalTransposeSemitones(2);
+    await engine.setStemPitchCorrection('bass', 1);
+    expect(engine.getSnapshot().stems.bass).toMatchObject({
+      pitchCorrectionSemitones: 1,
+      effectivePitchSemitones: 3
+    });
+
+    await engine.setGlobalTransposeSemitones(-1);
+
+    const snapshot = engine.getSnapshot();
+    expect(snapshot.globalTransposeSemitones).toBe(-1);
+    expect(snapshot.stems.vocals).toMatchObject({
+      pitchCorrectionSemitones: 0,
+      effectivePitchSemitones: -1
+    });
+    expect(snapshot.stems.bass).toMatchObject({
+      pitchCorrectionSemitones: 0,
+      effectivePitchSemitones: -1
+    });
+    expect(snapshot.stems.drums).toMatchObject({
+      pitchCorrectionSemitones: 0,
+      effectivePitchSemitones: 0
+    });
+
+    await engine.adjustStemPitchCorrection('bass', 1);
+    expect(engine.getSnapshot().stems.bass).toMatchObject({
+      pitchCorrectionSemitones: 1,
+      effectivePitchSemitones: 0
+    });
+  });
+
   it('routes only non-drum stems with active pitch through pitch shift nodes', async () => {
     const { context, engine, createPitchShiftNode, pitchNodes } = makeEngineWithPitchShift();
     await engine.loadSong({

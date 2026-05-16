@@ -59,7 +59,7 @@ The transport panel displays the currently selected song title above the main Pl
 
 Each stem row starts collapsed. Use the right-aligned switch in the stem controls to expand or collapse the waveform and volume controls for that stem.
 
-Use the global transpose buttons in the transport panel to shift non-drum stems up or down by semitone. Each non-drum stem row also has pitch correction buttons, so a track can be offset after the global transpose is applied. Drum stems stay at original pitch and do not receive global transpose or individual pitch correction.
+Use the global transpose buttons in the transport panel to shift non-drum stems up or down by semitone, or reset the global transpose back to 0. Changing the global transpose realigns every non-drum stem to that new value. Each non-drum stem row can then be transposed individually after the global value is set. Drum stems stay at original pitch and do not receive global transpose or individual pitch correction.
 
 Loading states use an indeterminate progress bar and skeleton placeholders while the song library, metadata, lyrics, stems, and waveforms are being prepared.
 

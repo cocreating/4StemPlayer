@@ -307,6 +307,7 @@ export class AudioEngine {
 
   async setGlobalTransposeSemitones(value: number) {
     this.globalTransposeSemitones = clampPitchSemitones(value);
+    this.resetStemPitchCorrections();
     this.updateEffectivePitchState();
     await this.applyPitchGraphForPlayback();
     this.emit();
@@ -443,6 +444,12 @@ export class AudioEngine {
   private updateEffectivePitchState() {
     for (const stem of this.stems.values()) {
       this.updateEffectivePitch(stem);
+    }
+  }
+
+  private resetStemPitchCorrections() {
+    for (const stem of this.stems.values()) {
+      stem.pitchCorrectionSemitones = 0;
     }
   }
 

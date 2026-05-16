@@ -15,6 +15,7 @@
     onStop?: () => void;
     onSeek?: (time: number) => void;
     onTranspose?: (delta: number) => void;
+    onTransposeReset?: () => void;
   };
 
   let {
@@ -28,7 +29,8 @@
     onPause = () => {},
     onStop = () => {},
     onSeek = () => {},
-    onTranspose = () => {}
+    onTranspose = () => {},
+    onTransposeReset = () => {}
   }: Props = $props();
 
   let currentSongTitle = $derived(displayTransportSongTitle(songTitle));
@@ -67,6 +69,9 @@
       <output aria-label="Global transpose">{transposeLabel}</output>
       <button type="button" disabled={disabled} aria-label="Transpose up one semitone" onclick={() => onTranspose(1)}>
         +
+      </button>
+      <button type="button" disabled={disabled} aria-label="Reset global transpose" title="Reset global transpose" onclick={onTransposeReset}>
+        0
       </button>
     </div>
   </div>

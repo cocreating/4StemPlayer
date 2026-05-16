@@ -134,6 +134,10 @@
     void engine?.adjustGlobalTransposeSemitones(delta);
   }
 
+  function resetTranspose() {
+    void engine?.setGlobalTransposeSemitones(0);
+  }
+
   function correctStemPitch(name: StemName, delta: number) {
     void engine?.adjustStemPitchCorrection(name, delta);
   }
@@ -218,6 +222,7 @@
           onStop={stop}
           onSeek={seek}
           onTranspose={transpose}
+          onTransposeReset={resetTranspose}
         />
 
         {#if selectedEntry && engineSnapshot}

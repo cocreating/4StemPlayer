@@ -35,7 +35,7 @@
   let disclosureLabel = $derived(stemDisclosureLabel(stem.label, expanded));
   let detailsId = $derived(`${stem.name}-details`);
   let pitchCorrectionLabel = $derived(formatPitchSemitones(stem.pitchCorrectionSemitones));
-  let effectivePitchLabel = $derived(formatPitchSemitones(stem.effectivePitchSemitones));
+  let stemTransposeLabel = $derived(formatPitchSemitones(stem.effectivePitchSemitones));
 
   function handleVolumeInput(event: Event) {
     onVolume(Number((event.currentTarget as HTMLInputElement).value));
@@ -79,21 +79,23 @@
       </button>
     </div>
 
-    <div class="stem-pitch-control" aria-label={`${stem.label} pitch correction`}>
+    <div class="stem-pitch-control" aria-label={`${stem.label} transpose`}>
       {#if stem.pitchAdjustable}
         <button
           type="button"
           disabled={disabled || !stem.loaded}
-          aria-label={`Lower ${stem.label} correction one semitone`}
+          aria-label={`Lower ${stem.label} transpose one semitone`}
           onclick={() => onPitchCorrection(-1)}
         >
           -
         </button>
-        <output title={`Effective pitch ${effectivePitchLabel}`}>{pitchCorrectionLabel}</output>
+        <output aria-label={`${stem.label} transpose`} title={`Individual offset ${pitchCorrectionLabel}`}>
+          {stemTransposeLabel}
+        </output>
         <button
           type="button"
           disabled={disabled || !stem.loaded}
-          aria-label={`Raise ${stem.label} correction one semitone`}
+          aria-label={`Raise ${stem.label} transpose one semitone`}
           onclick={() => onPitchCorrection(1)}
         >
           +
