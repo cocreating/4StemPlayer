@@ -31,3 +31,14 @@ export function formatPitchSemitones(value: number) {
   const semitones = clampPitchSemitones(value);
   return `${semitones > 0 ? '+' : ''}${semitones} st`;
 }
+
+export function masterGainForPitchSemitones(value: number) {
+  const semitones = clampPitchSemitones(value);
+  if (semitones >= 3) {
+    return 0.55;
+  }
+  if (semitones > 0) {
+    return 0.62;
+  }
+  return 0.7;
+}

@@ -5,7 +5,8 @@ import {
   clampPitchSemitones,
   effectiveStemPitchSemitones,
   formatPitchSemitones,
-  isPitchAdjustableStem
+  isPitchAdjustableStem,
+  masterGainForPitchSemitones
 } from './pitch';
 
 describe('pitch policy', () => {
@@ -29,5 +30,13 @@ describe('pitch policy', () => {
     expect(formatPitchSemitones(0)).toBe('0 st');
     expect(formatPitchSemitones(2)).toBe('+2 st');
     expect(formatPitchSemitones(-3)).toBe('-3 st');
+  });
+
+  it('applies stronger headroom for upward transpose than downward transpose', () => {
+    expect(masterGainForPitchSemitones(0)).toBe(0.7);
+    expect(masterGainForPitchSemitones(-2)).toBe(0.7);
+    expect(masterGainForPitchSemitones(1)).toBe(0.62);
+    expect(masterGainForPitchSemitones(2)).toBe(0.62);
+    expect(masterGainForPitchSemitones(3)).toBe(0.55);
   });
 });

@@ -1,7 +1,8 @@
 import {
   clampPitchSemitones,
   effectiveStemPitchSemitones,
-  isPitchAdjustableStem
+  isPitchAdjustableStem,
+  masterGainForPitchSemitones
 } from './pitch';
 
 export const STEM_ORDER = ['vocals', 'guitar', 'strings', 'drums', 'bass', 'fx', 'other'] as const;
@@ -54,6 +55,7 @@ interface EngineOptions {
   fetchArrayBuffer?: (url: string) => Promise<ArrayBuffer>;
   createPitchShiftNode?: (audioContext: AudioContext) => Promise<PitchShiftNodeLike>;
   driftCorrectionIntervalMs?: number;
+  wait?: (milliseconds: number) => Promise<void>;
 }
 
 interface LoadedStem extends StemPlaybackState {
@@ -73,6 +75,7 @@ interface PitchShiftNodeLike {
 
 const DEFAULT_RAMP_SECONDS = 0.018;
 const DEFAULT_DRIFT_INTERVAL_MS = 500;
+const LIVE_GRAPH_TRANSITION_SECONDS = 0.03;
 const pitchShiftRegistration = new WeakMap<BaseAudioContext, Promise<void>>();
 
 function createEmptyStem(name: StemName): StemPlaybackState {
@@ -151,6 +154,8 @@ export class AudioEngine {
   private readonly fetchArrayBuffer: (url: string) => Promise<ArrayBuffer>;
   private readonly createPitchShiftNode: (audioContext: AudioContext) => Promise<PitchShiftNodeLike>;
   private readonly driftCorrectionIntervalMs: number;
+  private readonly wait: (milliseconds: number) => Promise<void>;
+  private readonly masterGainNode: GainNode;
   private readonly listeners = new Set<(snapshot: AudioEngineSnapshot) => void>();
   private readonly stems = new Map<StemName, LoadedStem>();
   private driftTimer: ReturnType<typeof setInterval> | null = null;
@@ -170,6 +175,10 @@ export class AudioEngine {
     this.createPitchShiftNode = options.createPitchShiftNode ?? defaultCreatePitchShiftNode;
     this.driftCorrectionIntervalMs =
       options.driftCorrectionIntervalMs ?? DEFAULT_DRIFT_INTERVAL_MS;
+    this.wait =
+      options.wait ?? ((milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)));
+    this.masterGainNode = this.audioContext.createGain();
+    this.configureMasterOutput();
   }
 
   subscribe(listener: (snapshot: AudioEngineSnapshot) => void) {
@@ -309,6 +318,7 @@ export class AudioEngine {
     this.globalTransposeSemitones = clampPitchSemitones(value);
     this.resetStemPitchCorrections();
     this.updateEffectivePitchState();
+    this.applyMasterGainForStoppedPlayback();
     await this.applyPitchGraphForPlayback();
     this.emit();
   }
@@ -328,6 +338,7 @@ export class AudioEngine {
 
     stem.pitchCorrectionSemitones = clampPitchSemitones(value);
     this.updateEffectivePitch(stem);
+    this.applyMasterGainForStoppedPlayback();
     await this.applyPitchGraphForPlayback();
     this.emit();
   }
@@ -351,6 +362,7 @@ export class AudioEngine {
     this.position = 0;
     this.startedAt = 0;
     this.globalTransposeSemitones = 0;
+    this.masterGainNode.gain.value = masterGainForPitchSemitones(0);
     this.playing = false;
     this.loading = false;
     this.errors = [];
@@ -359,7 +371,7 @@ export class AudioEngine {
 
   private async loadStem(stem: LoadableStem) {
     const gainNode = this.audioContext.createGain();
-    gainNode.connect(this.audioContext.destination);
+    gainNode.connect(this.masterGainNode);
 
     const loadedStem: LoadedStem = {
       ...createEmptyStem(stem.name),
@@ -473,12 +485,71 @@ export class AudioEngine {
       return;
     }
 
+    if (!this.pitchRoutingNeedsRestart()) {
+      await this.syncPitchNodes();
+      this.rampMasterGain(this.currentMasterGainTarget());
+      return;
+    }
+
+    await this.fadeMasterGain(0);
+    if (!this.playing) {
+      return;
+    }
+
     const nextPosition = this.getPosition();
     this.stopSources();
     await this.syncPitchNodes();
     this.position = nextPosition;
     this.startedAt = this.audioContext.currentTime - nextPosition;
     this.startSources(nextPosition);
+    this.rampMasterGain(this.currentMasterGainTarget());
+  }
+
+  private pitchRoutingNeedsRestart() {
+    this.updateEffectivePitchState();
+    for (const stem of this.stems.values()) {
+      const wantsPitchNode = stem.pitchAdjustable && stem.effectivePitchSemitones !== 0;
+      if (wantsPitchNode !== Boolean(stem.pitchNode)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private configureMasterOutput() {
+    this.masterGainNode.gain.value = masterGainForPitchSemitones(0);
+    this.masterGainNode.connect(this.audioContext.destination);
+  }
+
+  private applyMasterGainForStoppedPlayback() {
+    if (!this.playing) {
+      this.masterGainNode.gain.value = this.currentMasterGainTarget();
+    }
+  }
+
+  private currentMasterGainTarget() {
+    const maxEffectivePitch = Math.max(
+      0,
+      ...[...this.stems.values()].map((stem) =>
+        stem.pitchAdjustable ? stem.effectivePitchSemitones : 0
+      )
+    );
+    return masterGainForPitchSemitones(maxEffectivePitch);
+  }
+
+  private async fadeMasterGain(value: number) {
+    this.rampMasterGain(value);
+    await this.wait(LIVE_GRAPH_TRANSITION_SECONDS * 1000);
+  }
+
+  private rampMasterGain(value: number) {
+    const now = this.audioContext.currentTime;
+    this.masterGainNode.gain.cancelScheduledValues(now);
+    this.masterGainNode.gain.setValueAtTime(this.masterGainNode.gain.value, now);
+    this.masterGainNode.gain.linearRampToValueAtTime(
+      value,
+      now + LIVE_GRAPH_TRANSITION_SECONDS
+    );
   }
 
   private async syncPitchNodes() {

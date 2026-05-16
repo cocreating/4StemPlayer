@@ -67,6 +67,8 @@ Loading states use an indeterminate progress bar and skeleton placeholders while
 
 Transpose keeps the zero-cost playback path when no pitch shift is active. When pitch shift is active, the app routes affected non-drum stems through a SoundTouch AudioWorklet pitch processor in the Web Audio graph. Native `AudioBufferSourceNode.detune` is not used because detune changes playback rate and can desync stems.
 
+To reduce audible clicks and clipping during live transpose changes, the engine reuses active pitch nodes when the routing is already in place and only fades the master output when pitch routing has to be inserted or removed. Output headroom is plain gain, not compression: `0.7` for unshifted or downward transpose, `0.62` for `+1`/`+2`, and `0.55` for `+3` or higher effective upward transpose.
+
 ## Vercel deployment
 
 This project uses a static build output configured to `build/`.
