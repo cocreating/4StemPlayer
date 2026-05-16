@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { formatPitchSemitones } from '$lib/audio/pitch';
   import { formatDurationSeconds, formatTime } from '$lib/songs';
   import { displayTransportSongTitle } from '$lib/transport';
 
@@ -7,11 +8,13 @@
     playing?: boolean;
     position?: number;
     duration?: number;
+    transposeSemitones?: number;
     disabled?: boolean;
     onPlay?: () => void;
     onPause?: () => void;
     onStop?: () => void;
     onSeek?: (time: number) => void;
+    onTranspose?: (delta: number) => void;
   };
 
   let {
@@ -19,16 +22,19 @@
     playing = false,
     position = 0,
     duration = 0,
+    transposeSemitones = 0,
     disabled = false,
     onPlay = () => {},
     onPause = () => {},
     onStop = () => {},
-    onSeek = () => {}
+    onSeek = () => {},
+    onTranspose = () => {}
   }: Props = $props();
 
   let currentSongTitle = $derived(displayTransportSongTitle(songTitle));
   let progressLabel = $derived(`${formatTime(position)} of ${formatTime(duration)}`);
   let positionSecondsLabel = $derived(`${formatDurationSeconds(position)} seconds`);
+  let transposeLabel = $derived(formatPitchSemitones(transposeSemitones));
 
   function handleSeekInput(event: Event) {
     onSeek(Number((event.currentTarget as HTMLInputElement).value));
@@ -52,6 +58,16 @@
         </button>
       {/if}
       <button type="button" disabled={disabled} onclick={onStop}>Stop</button>
+    </div>
+
+    <div class="transpose-control" aria-label="Global transpose for non-drum tracks">
+      <button type="button" disabled={disabled} aria-label="Transpose down one semitone" onclick={() => onTranspose(-1)}>
+        -
+      </button>
+      <output aria-label="Global transpose">{transposeLabel}</output>
+      <button type="button" disabled={disabled} aria-label="Transpose up one semitone" onclick={() => onTranspose(1)}>
+        +
+      </button>
     </div>
   </div>
 

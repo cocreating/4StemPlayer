@@ -39,6 +39,23 @@ class FakeGainNode {
   }
 }
 
+class FakePitchShiftNode {
+  pitch = new FakeAudioParam(1);
+  pitchSemitones = new FakeAudioParam(0);
+  playbackRate = new FakeAudioParam(1);
+  connectedTo: unknown[] = [];
+  disconnected = false;
+
+  connect(destination: unknown) {
+    this.connectedTo.push(destination);
+    return destination;
+  }
+
+  disconnect() {
+    this.disconnected = true;
+  }
+}
+
 class FakeBufferSourceNode {
   buffer: AudioBuffer | null = null;
   startCalls: Array<{ when: number; offset: number }> = [];
@@ -104,6 +121,23 @@ function makeEngine() {
     fetchArrayBuffer
   });
   return { context, engine, fetchArrayBuffer };
+}
+
+function makeEngineWithPitchShift() {
+  const context = new FakeAudioContext();
+  const pitchNodes: FakePitchShiftNode[] = [];
+  const fetchArrayBuffer = vi.fn(async () => new ArrayBuffer(8));
+  const createPitchShiftNode = vi.fn(async () => {
+    const node = new FakePitchShiftNode();
+    pitchNodes.push(node);
+    return node;
+  });
+  const engine = new AudioEngine({
+    audioContext: context as unknown as AudioContext,
+    fetchArrayBuffer,
+    createPitchShiftNode
+  } as unknown as ConstructorParameters<typeof AudioEngine>[0]);
+  return { context, engine, fetchArrayBuffer, createPitchShiftNode, pitchNodes };
 }
 
 describe('AudioEngine', () => {
@@ -194,6 +228,61 @@ describe('AudioEngine', () => {
     expect(drumsGain.gain.events.at(-1)).toMatchObject({ type: 'ramp', value: 1 });
     expect(bassGain.gain.events.at(-1)).toMatchObject({ type: 'ramp', value: 0 });
     expect(otherGain.gain.events.at(-1)).toMatchObject({ type: 'ramp', value: 0 });
+  });
+
+  it('combines global transpose with per-stem correction but keeps drums at original pitch', async () => {
+    const { engine } = makeEngineWithPitchShift();
+    await engine.loadSong({
+      id: 'glorybox',
+      title: 'Glory Box',
+      stems: stemNames.map((name) => ({ name, label: name, url: `${name}.mp3` }))
+    });
+
+    await engine.setGlobalTransposeSemitones(2);
+    await engine.setStemPitchCorrection('bass', -1);
+    await engine.setStemPitchCorrection('drums', 5);
+
+    const snapshot = engine.getSnapshot();
+    expect(snapshot.globalTransposeSemitones).toBe(2);
+    expect(snapshot.stems.vocals).toMatchObject({
+      pitchAdjustable: true,
+      pitchCorrectionSemitones: 0,
+      effectivePitchSemitones: 2
+    });
+    expect(snapshot.stems.bass).toMatchObject({
+      pitchAdjustable: true,
+      pitchCorrectionSemitones: -1,
+      effectivePitchSemitones: 1
+    });
+    expect(snapshot.stems.drums).toMatchObject({
+      pitchAdjustable: false,
+      pitchCorrectionSemitones: 0,
+      effectivePitchSemitones: 0
+    });
+  });
+
+  it('routes only non-drum stems with active pitch through pitch shift nodes', async () => {
+    const { context, engine, createPitchShiftNode, pitchNodes } = makeEngineWithPitchShift();
+    await engine.loadSong({
+      id: 'glorybox',
+      title: 'Glory Box',
+      stems: stemNames.map((name) => ({ name, label: name, url: `${name}.mp3` }))
+    });
+
+    await engine.setGlobalTransposeSemitones(2);
+    await engine.play();
+
+    expect(createPitchShiftNode).toHaveBeenCalledTimes(3);
+    expect(pitchNodes.map((node) => node.pitchSemitones.value)).toEqual([2, 2, 2]);
+    expect(context.sources[0]?.connectedTo[0]).toBe(pitchNodes[0]);
+    expect(context.sources[1]?.connectedTo[0]).toBe(context.gains[1]);
+    expect(context.sources[2]?.connectedTo[0]).toBe(pitchNodes[1]);
+    expect(context.sources[3]?.connectedTo[0]).toBe(pitchNodes[2]);
+    expect(pitchNodes.map((node) => node.connectedTo[0])).toEqual([
+      context.gains[0],
+      context.gains[2],
+      context.gains[3]
+    ]);
   });
 
   it('destroys previous audio resources before loading a new song', async () => {

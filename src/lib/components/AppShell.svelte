@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
-  import { AudioEngine, type AudioEngineSnapshot } from '$lib/audio/AudioEngine';
+  import { AudioEngine, type AudioEngineSnapshot, type StemName } from '$lib/audio/AudioEngine';
   import { shouldHandlePlaybackShortcut } from '$lib/keyboard';
   import { loadingFeedbackText } from '$lib/loadingFeedback';
   import {
@@ -130,6 +130,14 @@
     engine?.seek(time);
   }
 
+  function transpose(delta: number) {
+    void engine?.adjustGlobalTransposeSemitones(delta);
+  }
+
+  function correctStemPitch(name: StemName, delta: number) {
+    void engine?.adjustStemPitchCorrection(name, delta);
+  }
+
   function togglePlayback() {
     if (!engineSnapshot || songLoading || engineSnapshot.errors.length > 0) {
       return;
@@ -203,11 +211,13 @@
           playing={engineSnapshot?.playing ?? false}
           position={engineSnapshot?.position ?? 0}
           duration={engineSnapshot?.duration ?? 0}
+          transposeSemitones={engineSnapshot?.globalTransposeSemitones ?? 0}
           disabled={!engineSnapshot || songLoading || (engineSnapshot.errors.length > 0)}
           onPlay={play}
           onPause={pause}
           onStop={stop}
           onSeek={seek}
+          onTranspose={transpose}
         />
 
         {#if selectedEntry && engineSnapshot}
@@ -218,6 +228,7 @@
             onMute={(name, muted) => engine?.setMuted(name, muted)}
             onSolo={(name, solo) => engine?.setSolo(name, solo)}
             onVolume={(name, volume) => engine?.setVolume(name, volume)}
+            onPitchCorrection={correctStemPitch}
             onSeek={seek}
           />
         {/if}

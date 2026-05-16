@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { StemPlaybackState } from '$lib/audio/AudioEngine';
+  import { formatPitchSemitones } from '$lib/audio/pitch';
   import { shouldToggleStemDisclosureFromClick, stemDisclosureLabel } from '$lib/stemDisclosure';
   import WaveformView from './WaveformView.svelte';
 
@@ -12,6 +13,7 @@
     onMute?: (muted: boolean) => void;
     onSolo?: (solo: boolean) => void;
     onVolume?: (volume: number) => void;
+    onPitchCorrection?: (delta: number) => void;
     onSeek?: (time: number) => void;
   };
 
@@ -24,6 +26,7 @@
     onMute = () => {},
     onSolo = () => {},
     onVolume = () => {},
+    onPitchCorrection = () => {},
     onSeek = () => {}
   }: Props = $props();
 
@@ -31,6 +34,8 @@
   let expanded = $state(false);
   let disclosureLabel = $derived(stemDisclosureLabel(stem.label, expanded));
   let detailsId = $derived(`${stem.name}-details`);
+  let pitchCorrectionLabel = $derived(formatPitchSemitones(stem.pitchCorrectionSemitones));
+  let effectivePitchLabel = $derived(formatPitchSemitones(stem.effectivePitchSemitones));
 
   function handleVolumeInput(event: Event) {
     onVolume(Number((event.currentTarget as HTMLInputElement).value));
@@ -74,6 +79,30 @@
       </button>
     </div>
 
+    <div class="stem-pitch-control" aria-label={`${stem.label} pitch correction`}>
+      {#if stem.pitchAdjustable}
+        <button
+          type="button"
+          disabled={disabled || !stem.loaded}
+          aria-label={`Lower ${stem.label} correction one semitone`}
+          onclick={() => onPitchCorrection(-1)}
+        >
+          -
+        </button>
+        <output title={`Effective pitch ${effectivePitchLabel}`}>{pitchCorrectionLabel}</output>
+        <button
+          type="button"
+          disabled={disabled || !stem.loaded}
+          aria-label={`Raise ${stem.label} correction one semitone`}
+          onclick={() => onPitchCorrection(1)}
+        >
+          +
+        </button>
+      {:else}
+        <span class="stem-pitch-locked">Pitch locked</span>
+      {/if}
+    </div>
+
     <div class="stem-control-state">
       <button
         type="button"
@@ -99,6 +128,10 @@
         <span class="stem-state error-text">Error</span>
       {:else if stem.loaded}
         <span class="stem-state">Ready</span>
+      {/if}
+
+      {#if stem.pitchShiftError}
+        <span class="stem-state error-text" title={stem.pitchShiftError}>Pitch off</span>
       {/if}
     </div>
   </div>

@@ -436,6 +436,35 @@ pre {
   gap: 0.75rem;
 }
 
+.transpose-control,
+.stem-pitch-control {
+  display: grid;
+  grid-template-columns: 2.75rem minmax(4.4rem, 1fr) 2.75rem;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.transpose-control output,
+.stem-pitch-control output,
+.stem-pitch-locked {
+  min-height: 2.75rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-strong);
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.stem-pitch-locked {
+  grid-column: 1 / -1;
+}
+
 .primary-action,
 button.active {
   border-color: var(--accent);
@@ -483,7 +512,8 @@ button.active::after {
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas:
     "title state"
-    "buttons buttons";
+    "buttons buttons"
+    "pitch pitch";
   align-items: center;
   gap: 0.7rem;
 }
@@ -575,6 +605,10 @@ button.active::after {
   grid-area: buttons;
   grid-template-columns: 1fr 1fr;
   gap: 0.6rem;
+}
+
+.stem-pitch-control {
+  grid-area: pitch;
 }
 
 .waveform-shell {
@@ -731,8 +765,8 @@ button.active::after {
 
 @media (min-width: 50em) {
   .stem-controls {
-    grid-template-columns: minmax(8rem, 12rem) minmax(12rem, 14rem) auto;
-    grid-template-areas: "title buttons state";
+    grid-template-columns: minmax(8rem, 12rem) minmax(12rem, 14rem) minmax(10rem, 12rem) auto;
+    grid-template-areas: "title buttons pitch state";
     align-items: center;
   }
 

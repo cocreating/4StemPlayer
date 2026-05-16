@@ -59,11 +59,13 @@ The transport panel displays the currently selected song title above the main Pl
 
 Each stem row starts collapsed. Use the right-aligned switch in the stem controls to expand or collapse the waveform and volume controls for that stem.
 
+Use the global transpose buttons in the transport panel to shift non-drum stems up or down by semitone. Each non-drum stem row also has pitch correction buttons, so a track can be offset after the global transpose is applied. Drum stems stay at original pitch and do not receive global transpose or individual pitch correction.
+
 Loading states use an indeterminate progress bar and skeleton placeholders while the song library, metadata, lyrics, stems, and waveforms are being prepared.
 
 ## Transpose approach
 
-Future transpose controls should keep the current zero-cost playback path when no pitch shift is active. Global transpose should apply only to harmonic stems, not drums, and per-stem pitch correction should also be disabled for drums. When pitch shift is active, use a tempo-preserving pitch processor in the Web Audio graph rather than native `AudioBufferSourceNode.detune`, because detune changes playback rate and can desync stems.
+Transpose keeps the zero-cost playback path when no pitch shift is active. When pitch shift is active, the app routes affected non-drum stems through a SoundTouch AudioWorklet pitch processor in the Web Audio graph. Native `AudioBufferSourceNode.detune` is not used because detune changes playback rate and can desync stems.
 
 ## Vercel deployment
 
