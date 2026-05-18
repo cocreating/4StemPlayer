@@ -10,7 +10,9 @@
     duration?: number;
     transposeSemitones?: number;
     sectionsOpen?: boolean;
+    lyricsOpen?: boolean;
     hasSections?: boolean;
+    hasLyrics?: boolean;
     disabled?: boolean;
     onPlay?: () => void;
     onPause?: () => void;
@@ -19,6 +21,7 @@
     onTranspose?: (delta: number) => void;
     onTransposeReset?: () => void;
     onSectionsToggle?: () => void;
+    onLyricsToggle?: () => void;
   };
 
   let {
@@ -28,7 +31,9 @@
     duration = 0,
     transposeSemitones = 0,
     sectionsOpen = false,
+    lyricsOpen = false,
     hasSections = false,
+    hasLyrics = false,
     disabled = false,
     onPlay = () => {},
     onPause = () => {},
@@ -36,7 +41,8 @@
     onSeek = () => {},
     onTranspose = () => {},
     onTransposeReset = () => {},
-    onSectionsToggle = () => {}
+    onSectionsToggle = () => {},
+    onLyricsToggle = () => {}
   }: Props = $props();
 
   let currentSongTitle = $derived(displayTransportSongTitle(songTitle));
@@ -75,6 +81,16 @@
         onclick={onSectionsToggle}
       >
         Sections
+      </button>
+      <button
+        type="button"
+        class:lyrics-action-open={lyricsOpen}
+        disabled={disabled || !hasLyrics}
+        aria-controls="lyrics-popover"
+        aria-expanded={lyricsOpen}
+        onclick={onLyricsToggle}
+      >
+        Lyrics
       </button>
     </div>
 

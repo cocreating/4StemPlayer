@@ -447,17 +447,18 @@ pre {
   white-space: nowrap;
 }
 
-.sections-action-open {
+.sections-action-open,
+.lyrics-action-open {
   border-color: var(--accent);
   background: var(--accent-soft);
   color: var(--accent-strong);
 }
 
-.sections-popover {
+.sections-popover,
+.lyrics-popover {
   position: absolute;
   top: calc(100% + 0.45rem);
   left: 0;
-  width: min(100%, 34rem);
   z-index: 20;
   display: grid;
   gap: 0.85rem;
@@ -470,25 +471,40 @@ pre {
     transform 0.18s ease;
 }
 
-.sections-popover-open {
+.sections-popover {
+  width: min(100%, 34rem);
+}
+
+.lyrics-popover {
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(100%, 42rem);
+  max-height: min(28rem, calc(100vh - 12rem));
+  overflow: hidden;
+}
+
+.sections-popover-open,
+.lyrics-popover-open {
   pointer-events: auto;
   opacity: 1;
   transform: translateY(0);
 }
 
-.sections-popover-header {
+.sections-popover-header,
+.lyrics-popover-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
 }
 
-.sections-popover-header h2 {
+.sections-popover-header h2,
+.lyrics-popover-header h2 {
   margin-bottom: 0;
   font-size: 1rem;
 }
 
-.sections-popover-close {
+.sections-popover-close,
+.lyrics-popover-close {
   min-height: 2.1rem;
   padding: 0.25rem 0.65rem;
   font-size: 0.82rem;
@@ -719,8 +735,7 @@ button.active::after {
   font-weight: 700;
 }
 
-.song-info,
-.lyrics-panel {
+.song-info {
   padding: 1rem;
 }
 
@@ -803,6 +818,15 @@ button.active::after {
 }
 
 .lyrics-panel {
+  min-height: 0;
+  overflow: auto;
+  border-top: 1px solid var(--line);
+  color: var(--ink);
+  padding-top: 0.85rem;
+}
+
+.lyrics-panel p {
+  margin-bottom: 0;
   color: var(--ink);
 }
 

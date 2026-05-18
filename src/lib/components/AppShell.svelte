@@ -33,9 +33,11 @@
   let appError = $state('');
   let theme = $state<ThemeMode>('light');
   let sectionsOpen = $state(false);
+  let lyricsOpen = $state(false);
   let manifestFeedback = $derived(loadingFeedbackText('manifest'));
   let songFeedback = $derived(loadingFeedbackText('song', selectedEntry?.title));
   let sectionMarkers = $derived(songBundle?.metadata.sections ?? []);
+  let lyricsText = $derived(songBundle?.lyricsMarkdown || songBundle?.metadata.lyrics || '');
 
   function getBrowserStorage() {
     try {
@@ -89,6 +91,7 @@
     selectedEntry = nextEntry;
     songBundle = null;
     sectionsOpen = false;
+    lyricsOpen = false;
     saveSelectedSongId(getBrowserStorage(), songId);
 
     unsubscribe?.();
@@ -149,11 +152,23 @@
   function toggleSections() {
     if (sectionMarkers.length > 0) {
       sectionsOpen = !sectionsOpen;
+      lyricsOpen = false;
     }
   }
 
   function closeSections() {
     sectionsOpen = false;
+  }
+
+  function toggleLyrics() {
+    if (songBundle) {
+      lyricsOpen = !lyricsOpen;
+      sectionsOpen = false;
+    }
+  }
+
+  function closeLyrics() {
+    lyricsOpen = false;
   }
 
   function togglePlayback() {
@@ -232,7 +247,9 @@
             duration={engineSnapshot?.duration ?? 0}
             transposeSemitones={engineSnapshot?.globalTransposeSemitones ?? 0}
             sectionsOpen={sectionsOpen}
+            lyricsOpen={lyricsOpen}
             hasSections={sectionMarkers.length > 0}
+            hasLyrics={Boolean(songBundle)}
             disabled={!engineSnapshot || songLoading || (engineSnapshot.errors.length > 0)}
             onPlay={play}
             onPause={pause}
@@ -241,6 +258,7 @@
             onTranspose={transpose}
             onTransposeReset={resetTranspose}
             onSectionsToggle={toggleSections}
+            onLyricsToggle={toggleLyrics}
           />
           <SectionsPopover
             sections={sectionMarkers}
@@ -248,6 +266,9 @@
             onClose={closeSections}
             onSeek={seek}
           />
+          {#if songBundle}
+            <LyricsViewer lyrics={lyricsText} open={lyricsOpen} onClose={closeLyrics} />
+          {/if}
         </div>
 
         {#if selectedEntry && engineSnapshot}
@@ -267,7 +288,6 @@
       <aside class="info-stack" aria-label="Song information">
         {#if songBundle}
           <SongInfoPanel metadata={songBundle.metadata} engineDuration={engineSnapshot?.duration} />
-          <LyricsViewer lyrics={songBundle.lyricsMarkdown || songBundle.metadata.lyrics || ''} />
         {:else}
           <LoadingPanel title={songFeedback.title} description={songFeedback.description} />
         {/if}
