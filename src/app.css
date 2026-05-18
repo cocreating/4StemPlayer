@@ -436,14 +436,15 @@ pre {
 }
 
 .transport-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem;
 }
 
 .transport-actions button {
-  min-width: 4.6rem;
-  flex: 0 0 auto;
+  min-width: 0;
+  padding-inline: 0.35rem;
+  font-size: 0.8rem;
   white-space: nowrap;
 }
 
@@ -512,14 +513,14 @@ pre {
 
 .transpose-control {
   display: grid;
-  grid-template-columns: 2.1rem minmax(3.9rem, 1fr) 2.1rem 2.1rem;
+  grid-template-columns: repeat(3, 2.1rem) max-content;
   align-items: center;
   gap: 0.35rem;
 }
 
 .stem-pitch-control {
   display: grid;
-  grid-template-columns: 2.1rem minmax(3.9rem, 1fr) 2.1rem;
+  grid-template-columns: repeat(2, 2.1rem) max-content;
   align-items: center;
   gap: 0.35rem;
 }
@@ -545,6 +546,7 @@ pre {
   font-size: 0.78rem;
   font-variant-numeric: tabular-nums;
   font-weight: 800;
+  padding-inline: 0.55rem;
   text-align: center;
   white-space: nowrap;
 }
@@ -568,7 +570,7 @@ button.active::after {
 .transport-seek,
 .volume-control {
   display: grid;
-  gap: 0.4rem;
+  gap: 0.32rem;
 }
 
 .transport-seek output,
@@ -583,6 +585,12 @@ button.active::after {
   flex-wrap: wrap;
   gap: 0.4rem 1rem;
   justify-content: space-between;
+}
+
+.transport-seek .transpose-control {
+  border-top: 1px solid var(--line);
+  margin-top: 0.45rem;
+  padding-top: 0.55rem;
 }
 
 .stem-row {
@@ -600,8 +608,7 @@ button.active::after {
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas:
     "title state"
-    "buttons buttons"
-    "pitch pitch";
+    "buttons buttons";
   align-items: center;
   gap: 0.7rem;
 }
@@ -696,7 +703,7 @@ button.active::after {
 }
 
 .stem-pitch-control {
-  grid-area: pitch;
+  max-width: 18rem;
 }
 
 .waveform-shell {
@@ -845,24 +852,21 @@ button.active::after {
     grid-template-columns: 1fr minmax(16rem, 24rem);
   }
 
-  .transport-bar {
-    grid-template-columns: auto 1fr;
-    align-items: end;
-  }
-
-  .transport-command-stack {
-    width: 14rem;
-  }
-
   .transport-actions {
     width: 100%;
+    gap: 0.75rem;
+  }
+
+  .transport-actions button {
+    padding-inline: 0.95rem;
+    font-size: 1rem;
   }
 }
 
 @media (min-width: 50em) {
   .stem-controls {
-    grid-template-columns: minmax(8rem, 12rem) minmax(12rem, 14rem) minmax(10rem, 12rem) auto;
-    grid-template-areas: "title buttons pitch state";
+    grid-template-columns: minmax(8rem, 12rem) minmax(12rem, 14rem) auto;
+    grid-template-areas: "title buttons state";
     align-items: center;
   }
 
@@ -874,12 +878,42 @@ button.active::after {
     grid-template-columns: minmax(8rem, 12rem) 1fr 3rem;
     align-items: center;
   }
+
+  .stem-pitch-control {
+    justify-self: start;
+    width: min(100%, 18rem);
+  }
 }
 
 @media (min-width: 56.25em) {
   .player-grid {
     grid-template-columns: minmax(0, 1.4fr) minmax(18rem, 0.8fr);
     align-items: start;
+  }
+}
+
+@media (min-width: 64em) {
+  .transport-bar {
+    grid-template-columns: max-content minmax(24rem, 56rem);
+    align-items: end;
+    justify-content: start;
+    gap: 1.6rem;
+  }
+
+  .transport-command-stack {
+    width: max-content;
+  }
+
+  .transport-actions {
+    grid-template-columns: repeat(4, max-content);
+  }
+
+  .transport-actions button {
+    min-width: 4.8rem;
+  }
+
+  .transport-seek {
+    width: min(100%, 56rem);
   }
 }
 

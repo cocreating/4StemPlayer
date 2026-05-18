@@ -79,32 +79,6 @@
       </button>
     </div>
 
-    <div class="stem-pitch-control" aria-label={`${stem.label} transpose`}>
-      {#if stem.pitchAdjustable}
-        <button
-          type="button"
-          disabled={disabled || !stem.loaded}
-          aria-label={`Lower ${stem.label} transpose one semitone`}
-          onclick={() => onPitchCorrection(-1)}
-        >
-          -
-        </button>
-        <output aria-label={`${stem.label} transpose`} title={`Individual offset ${pitchCorrectionLabel}`}>
-          {stemTransposeLabel}
-        </output>
-        <button
-          type="button"
-          disabled={disabled || !stem.loaded}
-          aria-label={`Raise ${stem.label} transpose one semitone`}
-          onclick={() => onPitchCorrection(1)}
-        >
-          +
-        </button>
-      {:else}
-        <span class="stem-pitch-locked">Pitch locked</span>
-      {/if}
-    </div>
-
     <div class="stem-control-state">
       <button
         type="button"
@@ -163,6 +137,32 @@
         oninput={handleVolumeInput}
       />
       <output for={volumeId}>{Math.round(stem.volume * 100)}%</output>
+    </div>
+
+    <div class="stem-pitch-control" aria-label={`${stem.label} transpose`}>
+      {#if stem.pitchAdjustable}
+        <button
+          type="button"
+          disabled={disabled || !stem.loaded}
+          aria-label={`Lower ${stem.label} transpose one semitone`}
+          onclick={() => onPitchCorrection(-1)}
+        >
+          -
+        </button>
+        <button
+          type="button"
+          disabled={disabled || !stem.loaded}
+          aria-label={`Raise ${stem.label} transpose one semitone`}
+          onclick={() => onPitchCorrection(1)}
+        >
+          +
+        </button>
+        <output aria-label={`${stem.label} transpose`} title={`Individual offset ${pitchCorrectionLabel}`}>
+          {stemTransposeLabel}
+        </output>
+      {:else}
+        <span class="stem-pitch-locked">Pitch locked</span>
+      {/if}
     </div>
   </div>
 

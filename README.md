@@ -55,11 +55,11 @@ Both preferences are stored in `localStorage` on the user's browser. If a stored
 
 ## Player controls
 
-The transport panel displays the currently selected song title above the main Play, Stop, Sections, and Lyrics buttons. Songs with section markers enable the Sections button; pressing it opens a floating panel below the transport controls with seek buttons for each marker. The Lyrics button sits directly after Sections and opens a matching floating lyrics panel below the transport controls. Both floating panels can be closed with their top-right close buttons.
+The transport panel displays the currently selected song title above the main Play, Stop, Sections, and Lyrics buttons. Those four command buttons stay together on one line across phone and desktop layouts. Songs with section markers enable the Sections button; pressing it opens a floating panel below the transport controls with seek buttons for each marker. The Lyrics button sits directly after Sections and opens a matching floating lyrics panel below the transport controls. Both floating panels can be closed with their top-right close buttons.
 
 Each stem row starts collapsed. Use the right-aligned switch in the stem controls to expand or collapse the waveform and volume controls for that stem.
 
-Use the global transpose buttons in the transport panel to shift non-drum stems up or down by semitone, or reset the global transpose back to 0. Changing the global transpose realigns every non-drum stem to that new value. Each non-drum stem row can then be transposed individually after the global value is set. Drum stems stay at original pitch and do not receive global transpose or individual pitch correction.
+Use the global transpose buttons below the transport readouts to shift non-drum stems up or down by semitone, or reset the global transpose back to 0. The transpose buttons are grouped before the compact transpose value readout. Changing the global transpose realigns every non-drum stem to that new value. Each non-drum stem row can then be expanded and transposed individually after its volume control. Drum stems stay at original pitch and do not receive global transpose or individual pitch correction.
 
 Loading states use an indeterminate progress bar and skeleton placeholders while the song library, metadata, lyrics, stems, and waveforms are being prepared.
 

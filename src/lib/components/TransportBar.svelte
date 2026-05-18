@@ -94,18 +94,6 @@
       </button>
     </div>
 
-    <div class="transpose-control" aria-label="Global transpose for non-drum tracks">
-      <button type="button" disabled={disabled} aria-label="Transpose down one semitone" onclick={() => onTranspose(-1)}>
-        -
-      </button>
-      <output aria-label="Global transpose">{transposeLabel}</output>
-      <button type="button" disabled={disabled} aria-label="Transpose up one semitone" onclick={() => onTranspose(1)}>
-        +
-      </button>
-      <button type="button" disabled={disabled} aria-label="Reset global transpose" title="Reset global transpose" onclick={onTransposeReset}>
-        0
-      </button>
-    </div>
   </div>
 
   <div class="transport-seek">
@@ -124,6 +112,19 @@
     <div class="transport-readouts">
       <output for="transport-position">{progressLabel}</output>
       <output for="transport-position">{positionSecondsLabel}</output>
+    </div>
+
+    <div class="transpose-control" aria-label="Global transpose for non-drum tracks">
+      <button type="button" disabled={disabled} aria-label="Transpose down one semitone" onclick={() => onTranspose(-1)}>
+        -
+      </button>
+      <button type="button" disabled={disabled} aria-label="Transpose up one semitone" onclick={() => onTranspose(1)}>
+        +
+      </button>
+      <button type="button" disabled={disabled} aria-label="Reset global transpose" title="Reset global transpose" onclick={onTransposeReset}>
+        0
+      </button>
+      <output aria-label="Global transpose">{transposeLabel}</output>
     </div>
   </div>
 </section>
