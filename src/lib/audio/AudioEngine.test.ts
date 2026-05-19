@@ -39,6 +39,27 @@ class FakeGainNode {
   }
 }
 
+class FakeAnalyserNode {
+  fftSize = 256;
+  smoothingTimeConstant = 0;
+  connectedTo: unknown[] = [];
+  disconnected = false;
+  frame = new Uint8Array(256).fill(128);
+
+  connect(destination: unknown) {
+    this.connectedTo.push(destination);
+    return destination;
+  }
+
+  disconnect() {
+    this.disconnected = true;
+  }
+
+  getByteTimeDomainData(data: Uint8Array) {
+    data.set(this.frame.slice(0, data.length));
+  }
+}
+
 class FakePitchShiftNode {
   pitch = new FakeAudioParam(1);
   pitchSemitones = new FakeAudioParam(0);
@@ -86,6 +107,7 @@ class FakeAudioContext {
   destination = {};
   sources: FakeBufferSourceNode[] = [];
   gains: FakeGainNode[] = [];
+  analysers: FakeAnalyserNode[] = [];
   decodedBuffers = 0;
   resumed = false;
 
@@ -99,6 +121,12 @@ class FakeAudioContext {
     const source = new FakeBufferSourceNode();
     this.sources.push(source);
     return source as unknown as AudioBufferSourceNode;
+  }
+
+  createAnalyser() {
+    const analyser = new FakeAnalyserNode();
+    this.analysers.push(analyser);
+    return analyser as unknown as AnalyserNode;
   }
 
   async decodeAudioData() {
@@ -148,6 +176,28 @@ describe('AudioEngine', () => {
 
     expect(masterGain(context).gain.value).toBe(0.7);
     expect(masterGain(context).connectedTo[0]).toBe(context.destination);
+  });
+
+  it('exposes per-stem meter levels from analyser signal while playing', async () => {
+    const { context, engine } = makeEngine();
+    await engine.loadSong({
+      id: 'glorybox',
+      title: 'Glory Box',
+      stems: stemNames.map((name) => ({ name, label: name, url: `${name}.mp3` }))
+    });
+    context.analysers[0].frame = new Uint8Array(256).fill(192);
+
+    expect(engine.getSnapshot().stems.vocals.meterLevel).toBe(0);
+
+    await engine.play();
+    const activeLevel = engine.getSnapshot().stems.vocals.meterLevel;
+
+    expect(stemGains(context)[0].connectedTo[0]).toBe(context.analysers[0]);
+    expect(context.analysers[0].connectedTo[0]).toBe(masterGain(context));
+    expect(activeLevel).toBeGreaterThan(0);
+
+    engine.setMuted('vocals', true);
+    expect(engine.getSnapshot().stems.vocals.meterLevel).toBe(0);
   });
 
   it('lowers master gain more for upward transpose than downward transpose', async () => {

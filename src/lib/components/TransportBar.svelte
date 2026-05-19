@@ -10,8 +10,10 @@
     duration?: number;
     transposeSemitones?: number;
     sectionsOpen?: boolean;
+    mixerOpen?: boolean;
     lyricsOpen?: boolean;
     hasSections?: boolean;
+    hasMixer?: boolean;
     hasLyrics?: boolean;
     disabled?: boolean;
     onPlay?: () => void;
@@ -21,6 +23,7 @@
     onTranspose?: (delta: number) => void;
     onTransposeReset?: () => void;
     onSectionsToggle?: () => void;
+    onMixerToggle?: () => void;
     onLyricsToggle?: () => void;
   };
 
@@ -31,8 +34,10 @@
     duration = 0,
     transposeSemitones = 0,
     sectionsOpen = false,
+    mixerOpen = false,
     lyricsOpen = false,
     hasSections = false,
+    hasMixer = false,
     hasLyrics = false,
     disabled = false,
     onPlay = () => {},
@@ -42,6 +47,7 @@
     onTranspose = () => {},
     onTransposeReset = () => {},
     onSectionsToggle = () => {},
+    onMixerToggle = () => {},
     onLyricsToggle = () => {}
   }: Props = $props();
 
@@ -61,37 +67,51 @@
       <h2 class="transport-song-title">{currentSongTitle}</h2>
     {/if}
 
-    <div class="transport-actions">
-      {#if playing}
-        <button type="button" class="primary-action" disabled={disabled} onclick={onPause}>
-          Pause
+    <div class="transport-actions" aria-label="Playback panels">
+      <div class="transport-actions-primary">
+        {#if playing}
+          <button type="button" class="primary-action" disabled={disabled} onclick={onPause}>
+            Pause
+          </button>
+        {:else}
+          <button type="button" class="primary-action" disabled={disabled} onclick={onPlay}>
+            Play
+          </button>
+        {/if}
+        <button type="button" disabled={disabled} onclick={onStop}>Stop</button>
+        <button
+          type="button"
+          class:mixer-action-open={mixerOpen}
+          disabled={disabled || !hasMixer}
+          aria-controls="mixer-popover"
+          aria-expanded={mixerOpen}
+          onclick={onMixerToggle}
+        >
+          Mixer
         </button>
-      {:else}
-        <button type="button" class="primary-action" disabled={disabled} onclick={onPlay}>
-          Play
+      </div>
+      <div class="transport-actions-secondary">
+        <button
+          type="button"
+          class:sections-action-open={sectionsOpen}
+          disabled={disabled || !hasSections}
+          aria-controls="sections-popover"
+          aria-expanded={sectionsOpen}
+          onclick={onSectionsToggle}
+        >
+          Sections
         </button>
-      {/if}
-      <button type="button" disabled={disabled} onclick={onStop}>Stop</button>
-      <button
-        type="button"
-        class:sections-action-open={sectionsOpen}
-        disabled={disabled || !hasSections}
-        aria-controls="sections-popover"
-        aria-expanded={sectionsOpen}
-        onclick={onSectionsToggle}
-      >
-        Sections
-      </button>
-      <button
-        type="button"
-        class:lyrics-action-open={lyricsOpen}
-        disabled={disabled || !hasLyrics}
-        aria-controls="lyrics-popover"
-        aria-expanded={lyricsOpen}
-        onclick={onLyricsToggle}
-      >
-        Lyrics
-      </button>
+        <button
+          type="button"
+          class:lyrics-action-open={lyricsOpen}
+          disabled={disabled || !hasLyrics}
+          aria-controls="lyrics-popover"
+          aria-expanded={lyricsOpen}
+          onclick={onLyricsToggle}
+        >
+          Lyrics
+        </button>
+      </div>
     </div>
 
   </div>

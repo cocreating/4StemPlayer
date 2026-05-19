@@ -2,15 +2,43 @@ import { describe, expect, it } from 'vitest';
 import transportBarSource from './TransportBar.svelte?raw';
 
 describe('TransportBar', () => {
-  it('places a lyrics toggle directly after the sections toggle', () => {
+  it('places transport action buttons in two rows with mixer between stop and sections', () => {
+    const primaryRowIndex = transportBarSource.indexOf('class="transport-actions-primary"');
+    const secondaryRowIndex = transportBarSource.indexOf('class="transport-actions-secondary"');
+    const playButtonIndex = transportBarSource.indexOf('>\n            Play', primaryRowIndex);
+    const stopButtonIndex = transportBarSource.indexOf('>Stop</button>', primaryRowIndex);
+    const mixerButtonIndex = transportBarSource.indexOf('>\n          Mixer', primaryRowIndex);
+    const sectionsButtonIndex = transportBarSource.indexOf('>\n          Sections', secondaryRowIndex);
+    const lyricsButtonIndex = transportBarSource.indexOf('>\n          Lyrics', secondaryRowIndex);
+
+    expect(primaryRowIndex).toBeGreaterThanOrEqual(0);
+    expect(secondaryRowIndex).toBeGreaterThan(primaryRowIndex);
+    expect(playButtonIndex).toBeGreaterThan(primaryRowIndex);
+    expect(stopButtonIndex).toBeGreaterThan(playButtonIndex);
+    expect(mixerButtonIndex).toBeGreaterThan(stopButtonIndex);
+    expect(mixerButtonIndex).toBeLessThan(secondaryRowIndex);
+    expect(sectionsButtonIndex).toBeGreaterThan(secondaryRowIndex);
+    expect(sectionsButtonIndex).toBeGreaterThanOrEqual(0);
+    expect(lyricsButtonIndex).toBeGreaterThan(sectionsButtonIndex);
+  });
+
+  it('wires the mixer toggle to a floating mixer popover', () => {
+    expect(transportBarSource).toContain('mixerOpen?: boolean');
+    expect(transportBarSource).toContain('hasMixer?: boolean');
+    expect(transportBarSource).toContain('onMixerToggle?: () => void');
+    expect(transportBarSource).toContain('aria-controls="mixer-popover"');
+    expect(transportBarSource).toContain('aria-expanded={mixerOpen}');
+    expect(transportBarSource).toContain('onclick={onMixerToggle}');
+  });
+
+  it('wires the lyrics toggle after sections', () => {
     const sectionsButtonIndex = transportBarSource.indexOf('Sections');
     const lyricsButtonIndex = transportBarSource.indexOf('Lyrics');
 
-    expect(sectionsButtonIndex).toBeGreaterThanOrEqual(0);
-    expect(lyricsButtonIndex).toBeGreaterThan(sectionsButtonIndex);
     expect(transportBarSource).toContain('aria-controls="lyrics-popover"');
     expect(transportBarSource).toContain('aria-expanded={lyricsOpen}');
     expect(transportBarSource).toContain('onclick={onLyricsToggle}');
+    expect(lyricsButtonIndex).toBeGreaterThan(sectionsButtonIndex);
   });
 
   it('places global transpose controls after the transport readouts', () => {

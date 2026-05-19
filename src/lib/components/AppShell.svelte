@@ -15,6 +15,7 @@
   import LoadingPanel from './LoadingPanel.svelte';
   import SongSelector from './SongSelector.svelte';
   import ThemeToggle from './ThemeToggle.svelte';
+  import MixerPopover from './MixerPopover.svelte';
   import StemMixer from './StemMixer.svelte';
   import TransportBar from './TransportBar.svelte';
   import SectionsPopover from './SectionsPopover.svelte';
@@ -33,6 +34,7 @@
   let appError = $state('');
   let theme = $state<ThemeMode>('light');
   let sectionsOpen = $state(false);
+  let mixerOpen = $state(false);
   let lyricsOpen = $state(false);
   let manifestFeedback = $derived(loadingFeedbackText('manifest'));
   let songFeedback = $derived(loadingFeedbackText('song', selectedEntry?.title));
@@ -91,6 +93,7 @@
     selectedEntry = nextEntry;
     songBundle = null;
     sectionsOpen = false;
+    mixerOpen = false;
     lyricsOpen = false;
     saveSelectedSongId(getBrowserStorage(), songId);
 
@@ -152,6 +155,7 @@
   function toggleSections() {
     if (sectionMarkers.length > 0) {
       sectionsOpen = !sectionsOpen;
+      mixerOpen = false;
       lyricsOpen = false;
     }
   }
@@ -160,10 +164,23 @@
     sectionsOpen = false;
   }
 
+  function toggleMixer() {
+    if (selectedEntry && engineSnapshot) {
+      mixerOpen = !mixerOpen;
+      sectionsOpen = false;
+      lyricsOpen = false;
+    }
+  }
+
+  function closeMixer() {
+    mixerOpen = false;
+  }
+
   function toggleLyrics() {
     if (songBundle) {
       lyricsOpen = !lyricsOpen;
       sectionsOpen = false;
+      mixerOpen = false;
     }
   }
 
@@ -247,8 +264,10 @@
             duration={engineSnapshot?.duration ?? 0}
             transposeSemitones={engineSnapshot?.globalTransposeSemitones ?? 0}
             sectionsOpen={sectionsOpen}
+            mixerOpen={mixerOpen}
             lyricsOpen={lyricsOpen}
             hasSections={sectionMarkers.length > 0}
+            hasMixer={Boolean(selectedEntry && engineSnapshot)}
             hasLyrics={Boolean(songBundle)}
             disabled={!engineSnapshot || songLoading || (engineSnapshot.errors.length > 0)}
             onPlay={play}
@@ -258,6 +277,7 @@
             onTranspose={transpose}
             onTransposeReset={resetTranspose}
             onSectionsToggle={toggleSections}
+            onMixerToggle={toggleMixer}
             onLyricsToggle={toggleLyrics}
           />
           <SectionsPopover
@@ -266,6 +286,18 @@
             onClose={closeSections}
             onSeek={seek}
           />
+          {#if selectedEntry && engineSnapshot}
+            <MixerPopover
+              snapshot={engineSnapshot}
+              manifestEntry={selectedEntry}
+              open={mixerOpen}
+              disabled={songLoading}
+              onClose={closeMixer}
+              onMute={(name, muted) => engine?.setMuted(name, muted)}
+              onSolo={(name, solo) => engine?.setSolo(name, solo)}
+              onVolume={(name, volume) => engine?.setVolume(name, volume)}
+            />
+          {/if}
           {#if songBundle}
             <LyricsViewer lyrics={lyricsText} open={lyricsOpen} onClose={closeLyrics} />
           {/if}

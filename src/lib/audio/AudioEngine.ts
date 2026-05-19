@@ -32,6 +32,7 @@ export interface StemPlaybackState {
   solo: boolean;
   volume: number;
   effectiveGain: number;
+  meterLevel: number;
   pitchAdjustable: boolean;
   pitchCorrectionSemitones: number;
   effectivePitchSemitones: number;
@@ -61,6 +62,8 @@ interface EngineOptions {
 interface LoadedStem extends StemPlaybackState {
   buffer: AudioBuffer | null;
   gainNode: GainNode;
+  analyserNode: AnalyserNode | null;
+  meterData: Uint8Array<ArrayBuffer> | null;
   pitchNode: PitchShiftNodeLike | null;
   sourceNode: AudioBufferSourceNode | null;
 }
@@ -74,7 +77,7 @@ interface PitchShiftNodeLike {
 }
 
 const DEFAULT_RAMP_SECONDS = 0.018;
-const DEFAULT_DRIFT_INTERVAL_MS = 500;
+const DEFAULT_DRIFT_INTERVAL_MS = 80;
 const LIVE_GRAPH_TRANSITION_SECONDS = 0.03;
 const pitchShiftRegistration = new WeakMap<BaseAudioContext, Promise<void>>();
 
@@ -90,6 +93,7 @@ function createEmptyStem(name: StemName): StemPlaybackState {
     solo: false,
     volume: 1,
     effectiveGain: 1,
+    meterLevel: 0,
     pitchAdjustable: isPitchAdjustableStem(name),
     pitchCorrectionSemitones: 0,
     effectivePitchSemitones: 0,
@@ -190,6 +194,7 @@ export class AudioEngine {
   }
 
   getSnapshot(): AudioEngineSnapshot {
+    this.updateMeterLevels();
     const stems: Record<string, StemPlaybackState> = {};
     for (const [name, stem] of this.stems) {
       stems[name] = {
@@ -203,6 +208,7 @@ export class AudioEngine {
         solo: stem.solo,
         volume: stem.volume,
         effectiveGain: stem.effectiveGain,
+        meterLevel: stem.meterLevel,
         pitchAdjustable: stem.pitchAdjustable,
         pitchCorrectionSemitones: stem.pitchCorrectionSemitones,
         effectivePitchSemitones: stem.effectivePitchSemitones,
@@ -353,6 +359,7 @@ export class AudioEngine {
     this.stopSources();
     for (const stem of this.stems.values()) {
       stem.pitchNode?.disconnect();
+      stem.analyserNode?.disconnect();
       stem.gainNode.disconnect();
     }
     this.stems.clear();
@@ -371,7 +378,16 @@ export class AudioEngine {
 
   private async loadStem(stem: LoadableStem) {
     const gainNode = this.audioContext.createGain();
-    gainNode.connect(this.masterGainNode);
+    const analyserNode = this.createStemAnalyser();
+    let meterData: Uint8Array<ArrayBuffer> | null = null;
+
+    if (analyserNode) {
+      meterData = new Uint8Array(new ArrayBuffer(analyserNode.fftSize));
+      gainNode.connect(analyserNode);
+      analyserNode.connect(this.masterGainNode);
+    } else {
+      gainNode.connect(this.masterGainNode);
+    }
 
     const loadedStem: LoadedStem = {
       ...createEmptyStem(stem.name),
@@ -379,6 +395,8 @@ export class AudioEngine {
       url: stem.url,
       loading: true,
       gainNode,
+      analyserNode,
+      meterData,
       sourceNode: null,
       pitchNode: null,
       buffer: null
@@ -450,6 +468,35 @@ export class AudioEngine {
       const targetGain = stem.muted || (anySolo && !stem.solo) ? 0 : stem.volume;
       stem.effectiveGain = targetGain;
       this.setGain(stem.gainNode.gain, targetGain, ramped);
+    }
+  }
+
+  private createStemAnalyser() {
+    if (!('createAnalyser' in this.audioContext)) {
+      return null;
+    }
+
+    const analyser = this.audioContext.createAnalyser();
+    analyser.fftSize = 256;
+    analyser.smoothingTimeConstant = 0.72;
+    return analyser;
+  }
+
+  private updateMeterLevels() {
+    for (const stem of this.stems.values()) {
+      if (!this.playing || stem.effectiveGain <= 0 || !stem.analyserNode || !stem.meterData) {
+        stem.meterLevel = 0;
+        continue;
+      }
+
+      stem.analyserNode.getByteTimeDomainData(stem.meterData);
+      let sumSquares = 0;
+      for (const value of stem.meterData) {
+        const normalized = (value - 128) / 128;
+        sumSquares += normalized * normalized;
+      }
+      const rms = Math.sqrt(sumSquares / stem.meterData.length);
+      stem.meterLevel = clamp(rms * 8, 0, 1);
     }
   }
 

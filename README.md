@@ -55,7 +55,11 @@ Both preferences are stored in `localStorage` on the user's browser. If a stored
 
 ## Player controls
 
-The transport panel displays the currently selected song title above the main Play, Stop, Sections, and Lyrics buttons. Those four command buttons stay together on one line across phone and desktop layouts. Songs with section markers enable the Sections button; pressing it opens a floating panel below the transport controls with seek buttons for each marker. The Lyrics button sits directly after Sections and opens a matching floating lyrics panel below the transport controls. Both floating panels can be closed with their top-right close buttons.
+The transport panel displays the currently selected song title above two rows of command buttons. The first row contains Play, Stop, and Mixer. The second row contains Sections and Lyrics. Songs with section markers enable the Sections button; pressing it opens a floating panel below the transport controls with seek buttons for each marker. The Lyrics button opens a matching floating lyrics panel below the transport controls.
+
+The Mixer button opens a compact floating mixer panel with a minimal DJ-style layout. Each stem gets a vertical volume fader, Mute and Solo buttons, a percentage readout, and live segmented LED meters driven by per-stem Web Audio analyser levels. Mixer controls stay synchronized with the matching full stem row: changing volume, mute, or solo in either place updates the same stem state.
+
+On portrait phone screens, the mixer switches to tighter channel strips so all available stems fit inside the floating panel without horizontal scrolling. The full stem mixer remains visible below the transport area for waveform, mute, solo, volume, and pitch controls.
 
 Each stem row starts collapsed. Use the right-aligned switch in the stem controls to expand or collapse the waveform and volume controls for that stem.
 
