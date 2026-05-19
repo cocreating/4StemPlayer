@@ -3,11 +3,13 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createSongManifest } from './generate-song-manifest';
 import { generatePeaksForSongs } from './generate-peaks';
+import { detectBpmForSongs } from './detect-bpm';
 import { validateSongs } from './validate-songs';
 
 export interface RefreshSongsOptions {
   songsRoot?: string;
   release?: boolean;
+  skipBpmDetect?: boolean;
   skipPeaks?: boolean;
   forcePeaks?: boolean;
   skipBuild?: boolean;
@@ -15,6 +17,7 @@ export interface RefreshSongsOptions {
 
 export interface RefreshSongsDeps {
   validateSongs: typeof validateSongs;
+  detectBpmForSongs: typeof detectBpmForSongs;
   generatePeaksForSongs: typeof generatePeaksForSongs;
   createSongManifest: typeof createSongManifest;
   runCommand: (command: string, args: string[]) => Promise<void>;
@@ -24,6 +27,7 @@ export interface RefreshSongsDeps {
 
 const defaultDeps: RefreshSongsDeps = {
   validateSongs,
+  detectBpmForSongs,
   generatePeaksForSongs,
   createSongManifest,
   runCommand,
@@ -38,6 +42,8 @@ export function parseRefreshSongsArgs(args: string[]): RefreshSongsOptions {
     const arg = args[index];
     if (arg === '--release') {
       options.release = true;
+    } else if (arg === '--skip-bpm-detect') {
+      options.skipBpmDetect = true;
     } else if (arg === '--skip-peaks') {
       options.skipPeaks = true;
     } else if (arg === '--force-peaks') {
@@ -64,6 +70,17 @@ export async function refreshSongs(
   deps: RefreshSongsDeps = defaultDeps
 ) {
   const songsRoot = options.songsRoot ?? resolve('static/songs');
+
+  if (options.skipBpmDetect) {
+    deps.log('Skipping BPM detection.');
+  } else {
+    deps.log('Detecting BPM from drums stems...');
+    const bpmResult = await deps.detectBpmForSongs(songsRoot);
+    for (const warning of bpmResult.warnings) {
+      deps.warn(`Warning: ${warning}`);
+    }
+    deps.log(`Updated BPM metadata for ${bpmResult.updated.length} song(s).`);
+  }
 
   deps.log(`Validating songs in ${songsRoot}...`);
   const validation = await deps.validateSongs(songsRoot);

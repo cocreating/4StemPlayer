@@ -45,6 +45,7 @@ export interface AudioEngineSnapshot {
   globalTransposeSemitones: number;
   duration: number;
   position: number;
+  tempoRatio: number;
   playing: boolean;
   loading: boolean;
   errors: string[];
@@ -79,6 +80,8 @@ interface PitchShiftNodeLike {
 const DEFAULT_RAMP_SECONDS = 0.018;
 const DEFAULT_DRIFT_INTERVAL_MS = 80;
 const LIVE_GRAPH_TRANSITION_SECONDS = 0.03;
+const MIN_TEMPO_RATIO = 0.5;
+const MAX_TEMPO_RATIO = 1.5;
 const pitchShiftRegistration = new WeakMap<BaseAudioContext, Promise<void>>();
 
 function createEmptyStem(name: StemName): StemPlaybackState {
@@ -169,6 +172,7 @@ export class AudioEngine {
   private position = 0;
   private startedAt = 0;
   private globalTransposeSemitones = 0;
+  private tempoRatio = 1;
   private playing = false;
   private loading = false;
   private errors: string[] = [];
@@ -222,6 +226,7 @@ export class AudioEngine {
       globalTransposeSemitones: this.globalTransposeSemitones,
       duration: this.duration,
       position: this.getPosition(),
+      tempoRatio: this.tempoRatio,
       playing: this.playing,
       loading: this.loading,
       errors: [...this.errors],
@@ -262,7 +267,7 @@ export class AudioEngine {
     await this.audioContext.resume?.();
     await this.syncPitchNodes();
     this.position = clamp(this.position, 0, this.duration);
-    this.startedAt = this.audioContext.currentTime - this.position;
+    this.startedAt = this.audioContext.currentTime;
     this.playing = true;
     this.startSources(this.position);
     this.startDriftCorrection();
@@ -293,7 +298,7 @@ export class AudioEngine {
     this.position = clamp(Number.isFinite(time) ? time : 0, 0, this.duration || Number.MAX_SAFE_INTEGER);
     if (this.playing) {
       this.stopSources();
-      this.startedAt = this.audioContext.currentTime - this.position;
+      this.startedAt = this.audioContext.currentTime;
       this.startSources(this.position);
     }
     this.emit();
@@ -318,6 +323,27 @@ export class AudioEngine {
     stem.volume = clamp(volume, 0, 1);
     this.applyGainState();
     this.emit();
+  }
+
+  async setTempoRatio(value: number) {
+    const nextTempoRatio = clamp(Number.isFinite(value) ? value : 1, MIN_TEMPO_RATIO, MAX_TEMPO_RATIO);
+    if (nextTempoRatio === this.tempoRatio) {
+      this.emit();
+      return;
+    }
+
+    if (this.playing) {
+      this.position = this.getPosition();
+      this.startedAt = this.audioContext.currentTime;
+    }
+
+    this.tempoRatio = nextTempoRatio;
+    await this.applyPitchGraphForPlayback();
+    this.emit();
+  }
+
+  async resetTempoRatio() {
+    await this.setTempoRatio(1);
   }
 
   async setGlobalTransposeSemitones(value: number) {
@@ -369,6 +395,7 @@ export class AudioEngine {
     this.position = 0;
     this.startedAt = 0;
     this.globalTransposeSemitones = 0;
+    this.tempoRatio = 1;
     this.masterGainNode.gain.value = masterGainForPitchSemitones(0);
     this.playing = false;
     this.loading = false;
@@ -425,8 +452,9 @@ export class AudioEngine {
       }
       const source = this.audioContext.createBufferSource();
       source.buffer = stem.buffer;
+      source.playbackRate.value = this.tempoRatio;
       const destination =
-        stem.effectivePitchSemitones !== 0 && stem.pitchNode ? stem.pitchNode : stem.gainNode;
+        this.stemNeedsPitchNode(stem) && stem.pitchNode ? stem.pitchNode : stem.gainNode;
       source.connect(destination as unknown as AudioNode);
       source.onended = () => {
         if (this.playing && this.getPosition() >= this.duration - 0.05) {
@@ -459,7 +487,7 @@ export class AudioEngine {
     if (!this.playing) {
       return this.position;
     }
-    return clamp(this.audioContext.currentTime - this.startedAt, 0, this.duration);
+    return clamp(this.position + ((this.audioContext.currentTime - this.startedAt) * this.tempoRatio), 0, this.duration);
   }
 
   private applyGainState(ramped = true) {
@@ -534,6 +562,7 @@ export class AudioEngine {
 
     if (!this.pitchRoutingNeedsRestart()) {
       await this.syncPitchNodes();
+      this.updateActiveSourcePlaybackRates();
       this.rampMasterGain(this.currentMasterGainTarget());
       return;
     }
@@ -547,15 +576,19 @@ export class AudioEngine {
     this.stopSources();
     await this.syncPitchNodes();
     this.position = nextPosition;
-    this.startedAt = this.audioContext.currentTime - nextPosition;
+    this.startedAt = this.audioContext.currentTime;
     this.startSources(nextPosition);
     this.rampMasterGain(this.currentMasterGainTarget());
+  }
+
+  private stemNeedsPitchNode(stem: LoadedStem) {
+    return this.tempoRatio !== 1 || (stem.pitchAdjustable && stem.effectivePitchSemitones !== 0);
   }
 
   private pitchRoutingNeedsRestart() {
     this.updateEffectivePitchState();
     for (const stem of this.stems.values()) {
-      const wantsPitchNode = stem.pitchAdjustable && stem.effectivePitchSemitones !== 0;
+      const wantsPitchNode = this.stemNeedsPitchNode(stem);
       if (wantsPitchNode !== Boolean(stem.pitchNode)) {
         return true;
       }
@@ -584,6 +617,12 @@ export class AudioEngine {
     return masterGainForPitchSemitones(maxEffectivePitch);
   }
 
+  private updateActiveSourcePlaybackRates() {
+    for (const stem of this.stems.values()) {
+      stem.sourceNode?.playbackRate.setValueAtTime(this.tempoRatio, this.audioContext.currentTime);
+    }
+  }
+
   private async fadeMasterGain(value: number) {
     this.rampMasterGain(value);
     await this.wait(LIVE_GRAPH_TRANSITION_SECONDS * 1000);
@@ -603,7 +642,7 @@ export class AudioEngine {
     this.updateEffectivePitchState();
 
     for (const stem of this.stems.values()) {
-      if (!stem.pitchAdjustable || stem.effectivePitchSemitones === 0) {
+      if (!this.stemNeedsPitchNode(stem)) {
         stem.pitchShiftError = null;
         stem.pitchNode?.disconnect();
         stem.pitchNode = null;
@@ -616,9 +655,9 @@ export class AudioEngine {
           stem.pitchNode.connect(stem.gainNode);
         }
         stem.pitchNode.pitch?.setValueAtTime(1, this.audioContext.currentTime);
-        stem.pitchNode.playbackRate?.setValueAtTime(1, this.audioContext.currentTime);
+        stem.pitchNode.playbackRate?.setValueAtTime(this.tempoRatio, this.audioContext.currentTime);
         stem.pitchNode.pitchSemitones.setValueAtTime(
-          stem.effectivePitchSemitones,
+          stem.pitchAdjustable ? stem.effectivePitchSemitones : 0,
           this.audioContext.currentTime
         );
         stem.pitchShiftError = null;
@@ -658,8 +697,8 @@ export class AudioEngine {
         return;
       }
 
-      this.position = this.getPosition();
-      if (this.position >= this.duration) {
+      const currentPosition = this.getPosition();
+      if (currentPosition >= this.duration) {
         this.stop();
         return;
       }

@@ -45,12 +45,27 @@ describe('TransportBar', () => {
     const actionsIndex = transportBarSource.indexOf('class="transport-actions"');
     const seekIndex = transportBarSource.indexOf('class="transport-seek"');
     const readoutsIndex = transportBarSource.indexOf('class="transport-readouts"');
+    const bpmIndex = transportBarSource.indexOf('class="bpm-control"');
     const transposeIndex = transportBarSource.indexOf('class="transpose-control"');
 
     expect(actionsIndex).toBeGreaterThanOrEqual(0);
     expect(seekIndex).toBeGreaterThan(actionsIndex);
     expect(readoutsIndex).toBeGreaterThan(seekIndex);
-    expect(transposeIndex).toBeGreaterThan(readoutsIndex);
+    expect(bpmIndex).toBeGreaterThan(readoutsIndex);
+    expect(transposeIndex).toBeGreaterThan(bpmIndex);
+  });
+
+  it('wires target BPM controls to tempo callbacks', () => {
+    expect(transportBarSource).toContain('sourceBpm?: number');
+    expect(transportBarSource).toContain('tempoRatio?: number');
+    expect(transportBarSource).toContain('onTempoRatio?: (ratio: number) => void');
+    expect(transportBarSource).toContain('onTempoReset?: () => void');
+    expect(transportBarSource).toContain('aria-label="Target BPM"');
+    expect(transportBarSource).toContain('onclick={() => changeTargetBpm(-1)}');
+    expect(transportBarSource).toContain('onclick={() => changeTargetBpm(1)}');
+    expect(transportBarSource).toContain('onclick={onTempoReset}');
+    expect(transportBarSource).toContain('oninput={handleTempoInput}');
+    expect(transportBarSource).toContain('Current BPM');
   });
 
   it('places global transpose buttons together before the global transpose output', () => {

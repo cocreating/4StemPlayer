@@ -9,6 +9,8 @@
     position?: number;
     duration?: number;
     transposeSemitones?: number;
+    sourceBpm?: number;
+    tempoRatio?: number;
     sectionsOpen?: boolean;
     mixerOpen?: boolean;
     lyricsOpen?: boolean;
@@ -20,6 +22,8 @@
     onPause?: () => void;
     onStop?: () => void;
     onSeek?: (time: number) => void;
+    onTempoRatio?: (ratio: number) => void;
+    onTempoReset?: () => void;
     onTranspose?: (delta: number) => void;
     onTransposeReset?: () => void;
     onSectionsToggle?: () => void;
@@ -33,6 +37,8 @@
     position = 0,
     duration = 0,
     transposeSemitones = 0,
+    sourceBpm = 0,
+    tempoRatio = 1,
     sectionsOpen = false,
     mixerOpen = false,
     lyricsOpen = false,
@@ -44,6 +50,8 @@
     onPause = () => {},
     onStop = () => {},
     onSeek = () => {},
+    onTempoRatio = () => {},
+    onTempoReset = () => {},
     onTranspose = () => {},
     onTransposeReset = () => {},
     onSectionsToggle = () => {},
@@ -55,9 +63,28 @@
   let progressLabel = $derived(`${formatTime(position)} of ${formatTime(duration)}`);
   let positionSecondsLabel = $derived(`${formatDurationSeconds(position)} seconds`);
   let transposeLabel = $derived(formatPitchSemitones(transposeSemitones));
+  let minTargetBpm = $derived(Math.max(1, Math.round(sourceBpm * 0.5)));
+  let maxTargetBpm = $derived(Math.max(minTargetBpm, Math.round(sourceBpm * 1.5)));
+  let currentTargetBpm = $derived(sourceBpm > 0 ? Math.round(sourceBpm * tempoRatio) : 0);
+  let tempoDisabled = $derived(disabled || sourceBpm <= 0);
 
   function handleSeekInput(event: Event) {
     onSeek(Number((event.currentTarget as HTMLInputElement).value));
+  }
+
+  function setTargetBpm(targetBpm: number) {
+    if (sourceBpm <= 0) {
+      return;
+    }
+    onTempoRatio(targetBpm / sourceBpm);
+  }
+
+  function changeTargetBpm(delta: number) {
+    setTargetBpm(currentTargetBpm + delta);
+  }
+
+  function handleTempoInput(event: Event) {
+    setTargetBpm(Number((event.currentTarget as HTMLInputElement).value));
   }
 </script>
 
@@ -132,6 +159,34 @@
     <div class="transport-readouts">
       <output for="transport-position">{progressLabel}</output>
       <output for="transport-position">{positionSecondsLabel}</output>
+    </div>
+
+    <div class="bpm-control" aria-label="Playback BPM">
+      <div class="bpm-control-header">
+        <span>Source BPM {sourceBpm || '-'}</span>
+        <output aria-label="Current BPM">{currentTargetBpm || '-'}</output>
+      </div>
+      <div class="bpm-control-row">
+        <button type="button" disabled={tempoDisabled} aria-label="Decrease target BPM" onclick={() => changeTargetBpm(-1)}>
+          -
+        </button>
+        <input
+          type="range"
+          min={minTargetBpm}
+          max={maxTargetBpm}
+          step="1"
+          value={currentTargetBpm || minTargetBpm}
+          disabled={tempoDisabled}
+          aria-label="Target BPM"
+          oninput={handleTempoInput}
+        />
+        <button type="button" disabled={tempoDisabled} aria-label="Increase target BPM" onclick={() => changeTargetBpm(1)}>
+          +
+        </button>
+        <button type="button" disabled={tempoDisabled} aria-label="Reset target BPM" title="Reset target BPM" onclick={onTempoReset}>
+          0
+        </button>
+      </div>
     </div>
 
     <div class="transpose-control" aria-label="Global transpose for non-drum tracks">

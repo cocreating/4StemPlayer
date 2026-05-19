@@ -4,6 +4,10 @@ import { parseRefreshSongsArgs, refreshSongs, type RefreshSongsDeps } from './re
 function makeDeps(overrides: Partial<RefreshSongsDeps> = {}): RefreshSongsDeps {
   return {
     validateSongs: vi.fn(async () => ({ ok: true, errors: [], warnings: [] })),
+    detectBpmForSongs: vi.fn(async () => ({
+      updated: ['static/songs/Demo/song.json'],
+      warnings: []
+    })),
     generatePeaksForSongs: vi.fn(async () => ['static/songs/Demo/Demo_bass.peaks.json']),
     createSongManifest: vi.fn(async () => ({
       generatedAt: '2026-05-11T00:00:00.000Z',
@@ -22,6 +26,7 @@ describe('refreshSongs', () => {
 
     await refreshSongs({ songsRoot: 'static/songs' }, deps);
 
+    expect(deps.detectBpmForSongs).toHaveBeenCalledWith('static/songs');
     expect(deps.validateSongs).toHaveBeenCalledWith('static/songs');
     expect(deps.generatePeaksForSongs).toHaveBeenCalledWith('static/songs', { force: false });
     expect(deps.createSongManifest).toHaveBeenCalledWith('static/songs', { writeFile: true });
@@ -49,6 +54,15 @@ describe('refreshSongs', () => {
     expect(deps.runCommand).toHaveBeenNthCalledWith(2, 'npm', ['test']);
   });
 
+  it('supports skipping BPM detection', async () => {
+    const deps = makeDeps();
+
+    await refreshSongs({ skipBpmDetect: true }, deps);
+
+    expect(deps.detectBpmForSongs).not.toHaveBeenCalled();
+    expect(deps.validateSongs).toHaveBeenCalled();
+  });
+
   it('stops before generating assets when validation fails', async () => {
     const deps = makeDeps({
       validateSongs: vi.fn(async () => ({
@@ -72,6 +86,7 @@ describe('parseRefreshSongsArgs', () => {
       parseRefreshSongsArgs([
         '--release',
         '--skip-peaks',
+        '--skip-bpm-detect',
         '--force-peaks',
         '--skip-build',
         '--songs-root',
@@ -80,6 +95,7 @@ describe('parseRefreshSongsArgs', () => {
     ).toEqual({
       release: true,
       skipPeaks: true,
+      skipBpmDetect: true,
       forcePeaks: true,
       skipBuild: true,
       songsRoot: 'fixtures/songs'

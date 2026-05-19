@@ -35,7 +35,13 @@ After adding or replacing song files, run:
 npm run songs:prepare
 ```
 
-This validates song metadata, generates missing waveform peak files, and regenerates `static/songs/manifest.json`.
+This detects BPM from each required drums stem, writes the rounded result back to `song.json` when detection succeeds, validates song metadata, generates missing waveform peak files, and regenerates `static/songs/manifest.json`. Detection warnings preserve the existing curated BPM value.
+
+Use `--skip-bpm-detect` when you need to refresh validation, peaks, or the manifest without rewriting BPM metadata:
+
+```bash
+npm run songs:prepare -- --skip-bpm-detect
+```
 
 ## Build
 
@@ -63,7 +69,9 @@ On portrait phone screens, the mixer switches to tighter channel strips so all a
 
 Each stem row starts collapsed. Use the right-aligned switch in the stem controls to expand or collapse the waveform and volume controls for that stem.
 
-Use the global transpose buttons below the transport readouts to shift non-drum stems up or down by semitone, or reset the global transpose back to 0. The transpose buttons are grouped before the compact transpose value readout. Changing the global transpose realigns every non-drum stem to that new value. Each non-drum stem row can then be expanded and transposed individually after its volume control. Drum stems stay at original pitch and do not receive global transpose or individual pitch correction.
+Use the BPM controls below the transport readouts to change the target playback BPM from 50% to 150% of the source BPM. The source BPM comes from song metadata, the current BPM is shown as the primary value, and the reset button returns playback to the source tempo.
+
+Use the global transpose buttons below the BPM controls to shift non-drum stems up or down by semitone, or reset the global transpose back to 0. The transpose buttons are grouped before the compact transpose value readout. Changing the global transpose realigns every non-drum stem to that new value. Each non-drum stem row can then be expanded and transposed individually after its volume control. Drum stems stay at original pitch and do not receive global transpose or individual pitch correction.
 
 Loading states use an indeterminate progress bar and skeleton placeholders while the song library, metadata, lyrics, stems, and waveforms are being prepared.
 
@@ -72,6 +80,10 @@ Loading states use an indeterminate progress bar and skeleton placeholders while
 Transpose keeps the zero-cost playback path when no pitch shift is active. When pitch shift is active, the app routes affected non-drum stems through a SoundTouch AudioWorklet pitch processor in the Web Audio graph. Native `AudioBufferSourceNode.detune` is not used because detune changes playback rate and can desync stems.
 
 To reduce audible clicks and clipping during live transpose changes, the engine reuses active pitch nodes when the routing is already in place and only fades the master output when pitch routing has to be inserted or removed. Output headroom is plain gain, not compression: `0.7` for unshifted or downward transpose, `0.62` for `+1`/`+2`, and `0.55` for `+3` or higher effective upward transpose.
+
+## Tempo approach
+
+Dynamic BPM changes keep section markers, waveforms, and seeking on the original song timeline. The audio engine stores the detected metadata BPM as the source BPM and applies a global tempo ratio during playback. When the ratio is not `1`, all stems run through the same SoundTouch path used for transpose so playback speed can change while preserving pitch/key. Drums are only pitch-compensated for tempo changes; they are still excluded from transpose.
 
 ## Vercel deployment
 

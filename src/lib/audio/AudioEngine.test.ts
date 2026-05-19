@@ -79,6 +79,7 @@ class FakePitchShiftNode {
 
 class FakeBufferSourceNode {
   buffer: AudioBuffer | null = null;
+  playbackRate = new FakeAudioParam(1);
   startCalls: Array<{ when: number; offset: number }> = [];
   stopped = false;
   connectedTo: unknown[] = [];
@@ -287,6 +288,61 @@ describe('AudioEngine', () => {
       { when: 0, offset: 7.5 },
       { when: 0, offset: 7.5 }
     ]);
+  });
+
+  it('starts every stem at the current tempo ratio and exposes tempo in snapshots', async () => {
+    const { context, engine, createPitchShiftNode, pitchNodes } = makeEngineWithPitchShift();
+    await engine.loadSong({
+      id: 'glorybox',
+      title: 'Glory Box',
+      stems: stemNames.map((name) => ({ name, label: name, url: `${name}.mp3` }))
+    });
+
+    await engine.setTempoRatio(1.25);
+    await engine.play();
+
+    expect(engine.getSnapshot().tempoRatio).toBe(1.25);
+    expect(createPitchShiftNode).toHaveBeenCalledTimes(4);
+    expect(context.sources.map((source) => source.playbackRate.value)).toEqual([1.25, 1.25, 1.25, 1.25]);
+    expect(pitchNodes.map((node) => node.playbackRate.value)).toEqual([1.25, 1.25, 1.25, 1.25]);
+    expect(pitchNodes.map((node) => node.pitchSemitones.value)).toEqual([0, 0, 0, 0]);
+  });
+
+  it('clamps tempo ratio and advances the source playhead at tempo speed', async () => {
+    const { context, engine } = makeEngineWithPitchShift();
+    await engine.loadSong({
+      id: 'glorybox',
+      title: 'Glory Box',
+      stems: stemNames.map((name) => ({ name, label: name, url: `${name}.mp3` }))
+    });
+
+    await engine.setTempoRatio(3);
+    expect(engine.getSnapshot().tempoRatio).toBe(1.5);
+    await engine.play();
+
+    context.currentTime += 2;
+
+    expect(engine.getSnapshot().position).toBe(3);
+    await engine.setTempoRatio(0.1);
+    expect(engine.getSnapshot().tempoRatio).toBe(0.5);
+  });
+
+  it('combines tempo and transpose through SoundTouch while leaving drums untransposed', async () => {
+    const { context, engine, createPitchShiftNode, pitchNodes } = makeEngineWithPitchShift();
+    await engine.loadSong({
+      id: 'glorybox',
+      title: 'Glory Box',
+      stems: stemNames.map((name) => ({ name, label: name, url: `${name}.mp3` }))
+    });
+
+    await engine.setTempoRatio(1.2);
+    await engine.setGlobalTransposeSemitones(2);
+    await engine.play();
+
+    expect(createPitchShiftNode).toHaveBeenCalledTimes(4);
+    expect(context.sources.map((source) => source.connectedTo[0])).toEqual(pitchNodes);
+    expect(pitchNodes.map((node) => node.playbackRate.value)).toEqual([1.2, 1.2, 1.2, 1.2]);
+    expect(pitchNodes.map((node) => node.pitchSemitones.value)).toEqual([2, 0, 2, 2]);
   });
 
   it('applies volume, mute, and solo with ramped GainNode changes', async () => {
