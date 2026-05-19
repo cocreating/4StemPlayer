@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-16T01:11:21.969Z",
+  "generatedAt": "2026-05-19T23:18:10.537Z",
   "songs": [
     {
       "id": "Bambola",
@@ -33,7 +33,7 @@
       "folder": "GloryBox",
       "title": "Glory Box",
       "artist": "Portishead",
-      "bpm": 82,
+      "bpm": 120,
       "key": "D#m",
       "timeSignature": "4/4",
       "songJsonUrl": "/songs/GloryBox/song.json",
@@ -58,7 +58,7 @@
       "folder": "IkesRap2",
       "title": "Ike’s Rap 2",
       "artist": "Isaac Hayes",
-      "bpm": 59,
+      "bpm": 116,
       "key": "Dm",
       "timeSignature": "4/4",
       "songJsonUrl": "/songs/IkesRap2/song.json",
@@ -81,7 +81,7 @@
       "folder": "SendHLTMe",
       "title": "Send His Love to Me",
       "artist": "PJ Harvey",
-      "bpm": 125,
+      "bpm": 123,
       "key": "C",
       "timeSignature": "4/4",
       "songJsonUrl": "/songs/SendHLTMe/song.json",

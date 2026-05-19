@@ -157,7 +157,7 @@ select {
 
 #song-select option:checked {
   background: linear-gradient(var(--accent-soft), var(--accent-soft)),
-              var(--surface);
+    var(--surface);
   background-color: var(--accent);
   color: var(--accent-ink);
   font-weight: 700;
@@ -680,11 +680,13 @@ pre {
   line-height: 1;
 }
 
-.transpose-control {
+.transpose-control,
+.bpm-control {
   display: grid;
-  grid-template-columns: repeat(3, 2.1rem) max-content;
+  grid-template-columns: 2.1rem max-content 2.1rem max-content;
   align-items: center;
   gap: 0.35rem;
+  justify-content: space-evenly;
 }
 
 .stem-pitch-control {
@@ -695,6 +697,7 @@ pre {
 }
 
 .transpose-control button,
+.bpm-control button,
 .stem-pitch-control button {
   min-height: 2.1rem;
   padding: 0.25rem 0.45rem;
@@ -703,6 +706,7 @@ pre {
 }
 
 .transpose-control output,
+.bpm-control output,
 .stem-pitch-control output,
 .stem-pitch-locked {
   min-height: 2.1rem;
@@ -756,52 +760,11 @@ button.active::after {
   justify-content: space-between;
 }
 
-.transport-seek .transpose-control {
+.transport-seek .transpose-control,
+.transport-seek .bpm-control {
   border-top: 1px solid var(--line);
   margin-top: 0.45rem;
   padding-top: 0.55rem;
-}
-
-.bpm-control {
-  display: grid;
-  gap: 0.4rem;
-  border-top: 1px solid var(--line);
-  margin-top: 0.45rem;
-  padding-top: 0.55rem;
-}
-
-.bpm-control-header,
-.bpm-control-row {
-  display: grid;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.bpm-control-header {
-  grid-template-columns: 1fr auto;
-  color: var(--muted);
-  font-size: 0.78rem;
-  font-weight: 800;
-}
-
-.bpm-control-header output {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface-strong);
-  color: var(--ink);
-  font-variant-numeric: tabular-nums;
-  padding: 0.25rem 0.5rem;
-}
-
-.bpm-control-row {
-  grid-template-columns: 2.1rem minmax(7rem, 1fr) 2.1rem 2.1rem;
-}
-
-.bpm-control-row button {
-  min-height: 2.1rem;
-  padding: 0.25rem 0.45rem;
-  font-size: 0.82rem;
-  line-height: 1;
 }
 
 .stem-row {
@@ -1008,7 +971,7 @@ button.active::after {
   padding-top: 1rem;
 }
 
-.info-section + .info-section {
+.info-section+.info-section {
   margin-top: 1rem;
 }
 
@@ -1117,6 +1080,15 @@ button.active::after {
 @media (min-width: 37.5em) {
   .app-header {
     grid-template-columns: 1fr minmax(16rem, 24rem);
+  }
+
+  .transpose-control,
+  .bpm-control {
+    display: grid;
+    grid-template-columns: 2.1rem max-content 2.1rem max-content;
+    align-items: center;
+    gap: 0.35rem;
+    justify-content: end;
   }
 
   .transport-actions {

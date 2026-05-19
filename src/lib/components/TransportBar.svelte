@@ -63,9 +63,8 @@
   let progressLabel = $derived(`${formatTime(position)} of ${formatTime(duration)}`);
   let positionSecondsLabel = $derived(`${formatDurationSeconds(position)} seconds`);
   let transposeLabel = $derived(formatPitchSemitones(transposeSemitones));
-  let minTargetBpm = $derived(Math.max(1, Math.round(sourceBpm * 0.5)));
-  let maxTargetBpm = $derived(Math.max(minTargetBpm, Math.round(sourceBpm * 1.5)));
   let currentTargetBpm = $derived(sourceBpm > 0 ? Math.round(sourceBpm * tempoRatio) : 0);
+  let bpmLabel = $derived(currentTargetBpm > 0 ? `${currentTargetBpm} BPM` : '-');
   let tempoDisabled = $derived(disabled || sourceBpm <= 0);
 
   function handleSeekInput(event: Event) {
@@ -81,10 +80,6 @@
 
   function changeTargetBpm(delta: number) {
     setTargetBpm(currentTargetBpm + delta);
-  }
-
-  function handleTempoInput(event: Event) {
-    setTargetBpm(Number((event.currentTarget as HTMLInputElement).value));
   }
 </script>
 
@@ -161,45 +156,32 @@
       <output for="transport-position">{positionSecondsLabel}</output>
     </div>
 
-    <div class="bpm-control" aria-label="Playback BPM">
-      <div class="bpm-control-header">
-        <span>Source BPM {sourceBpm || '-'}</span>
-        <output aria-label="Current BPM">{currentTargetBpm || '-'}</output>
-      </div>
-      <div class="bpm-control-row">
-        <button type="button" disabled={tempoDisabled} aria-label="Decrease target BPM" onclick={() => changeTargetBpm(-1)}>
-          -
-        </button>
-        <input
-          type="range"
-          min={minTargetBpm}
-          max={maxTargetBpm}
-          step="1"
-          value={currentTargetBpm || minTargetBpm}
-          disabled={tempoDisabled}
-          aria-label="Target BPM"
-          oninput={handleTempoInput}
-        />
-        <button type="button" disabled={tempoDisabled} aria-label="Increase target BPM" onclick={() => changeTargetBpm(1)}>
-          +
-        </button>
-        <button type="button" disabled={tempoDisabled} aria-label="Reset target BPM" title="Reset target BPM" onclick={onTempoReset}>
-          0
-        </button>
-      </div>
-    </div>
-
     <div class="transpose-control" aria-label="Global transpose for non-drum tracks">
       <button type="button" disabled={disabled} aria-label="Transpose down one semitone" onclick={() => onTranspose(-1)}>
         -
       </button>
+      <output aria-label="Global transpose">{transposeLabel}</output>
       <button type="button" disabled={disabled} aria-label="Transpose up one semitone" onclick={() => onTranspose(1)}>
         +
       </button>
       <button type="button" disabled={disabled} aria-label="Reset global transpose" title="Reset global transpose" onclick={onTransposeReset}>
-        0
+        Reset transpose
       </button>
-      <output aria-label="Global transpose">{transposeLabel}</output>
     </div>
+
+    <div class="bpm-control" aria-label="Playback BPM">
+      <button type="button" disabled={tempoDisabled} aria-label="Decrease target BPM" onclick={() => changeTargetBpm(-1)}>
+        -
+      </button>
+      <output aria-label="Current BPM">{bpmLabel}</output>
+      <button type="button" disabled={tempoDisabled} aria-label="Increase target BPM" onclick={() => changeTargetBpm(1)}>
+        +
+      </button>
+      <button type="button" disabled={tempoDisabled} aria-label="Reset target BPM" title="Reset target BPM" onclick={onTempoReset}>
+        Reset BPM
+      </button>
+    </div>
+
+
   </div>
 </section>

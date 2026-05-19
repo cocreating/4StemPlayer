@@ -2,7 +2,7 @@
   "title": "Glory Box",
   "artist": "Portishead",
   "key": "D#m",
-  "bpm": 82,
+  "bpm": 120,
   "timeSignature": "4/4",
   "duration": "3:32",
   "durationSeconds": 306,
@@ -48,7 +48,7 @@
       "label": "Bridge",
       "start": 176
     },
-     {
+    {
       "label": "Break",
       "start": 184
     },

@@ -1,10 +1,10 @@
 # Product And Technical Specs
 
-Last reviewed: 2026-05-11
+Last reviewed: 2026-05-20
 
 ## Product Spec
 
-The app should provide a focused four-stem rehearsal and inspection surface.
+The app should provide a focused multi-stem rehearsal and inspection surface.
 
 Core user capabilities:
 
@@ -44,7 +44,6 @@ static/songs/<Folder>/
   <Folder>_bass.mp3 or <Song Title>_bass.mp3
   <Folder>_drums.mp3 or <Song Title>_drums.mp3
   <Folder>_vocals.mp3 or <Song Title>_vocals.mp3
-  <Folder>_other.mp3 or <Song Title>_other.mp3
 ```
 
 Optional folder contents:
@@ -59,9 +58,15 @@ Required stems:
 - `bass`
 - `drums`
 - `vocals`
+
+Optional stems (dynamically loaded if present):
+
+- `guitar`
+- `strings`
+- `fx`
 - `other`
 
-The app display order is `vocals`, `drums`, `bass`, `other`.
+The preferred display order is: `vocals`, `guitar`, `strings`, `drums`, `bass`, `fx`, `other`.
 
 ## `song.json` Shape
 
@@ -174,7 +179,7 @@ This command requires `ffmpeg` on `PATH`.
 
 ## Playback Spec
 
-- A song must define all four stems before loading.
+- A song must define at least the required stems (bass, drums, vocals) before loading.
 - All stems are fetched and decoded before the song is considered fully loaded.
 - Duration is the maximum duration across loaded stem buffers.
 - Play starts all loaded stems from one shared offset.

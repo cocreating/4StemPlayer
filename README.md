@@ -69,9 +69,9 @@ On portrait phone screens, the mixer switches to tighter channel strips so all a
 
 Each stem row starts collapsed. Use the right-aligned switch in the stem controls to expand or collapse the waveform and volume controls for that stem.
 
-Use the BPM controls below the transport readouts to change the target playback BPM from 50% to 150% of the source BPM. The source BPM comes from song metadata, the current BPM is shown as the primary value, and the reset button returns playback to the source tempo.
+Use the BPM controls below the transport readouts to adjust the target playback BPM. The current target BPM is displayed between decrement (`-`) and increment (`+`) buttons, and the `Reset BPM` button returns the playback to the original source tempo.
 
-Use the global transpose buttons below the BPM controls to shift non-drum stems up or down by semitone, or reset the global transpose back to 0. The transpose buttons are grouped before the compact transpose value readout. Changing the global transpose realigns every non-drum stem to that new value. Each non-drum stem row can then be expanded and transposed individually after its volume control. Drum stems stay at original pitch and do not receive global transpose or individual pitch correction.
+Use the global transpose buttons below the BPM controls to shift non-drum stems up or down by a semitone. The current transpose amount is displayed between decrement (`-`) and increment (`+`) buttons, and the `Reset transpose` button resets the transpose back to 0. Changing the global transpose realigns every non-drum stem to that new value. Each non-drum stem row can then be expanded and transposed individually after its volume control. Drum stems stay at original pitch and do not receive global transpose or individual pitch correction.
 
 Loading states use an indeterminate progress bar and skeleton placeholders while the song library, metadata, lyrics, stems, and waveforms are being prepared.
 

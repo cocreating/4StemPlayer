@@ -1,16 +1,19 @@
 # 4Stem Band Player Overview
 
-Last reviewed: 2026-05-11
+Last reviewed: 2026-05-20
 
 ## What This App Does
 
 4Stem Band Player is a browser-based technical spike for synchronized four-stem music playback. It loads a static song catalog, decodes four MP3 stems in the browser, and lets the user rehearse or inspect a song with transport controls, Space bar play/pause, per-stem mute/solo/volume controls, waveform seeking, lyrics, structured chords, notes, duration metadata, and section markers.
 
-The supported stem set is fixed:
+The supported stem set is dynamic, with the preferred display order:
 
 - `vocals`
+- `guitar`
+- `strings`
 - `drums`
 - `bass`
+- `fx`
 - `other`
 
 The current bundled song catalog contains one demo song:
@@ -46,7 +49,7 @@ Validation performed during this review:
 - `src/routes/+page.svelte`: page entry point.
 - `src/lib/components/AppShell.svelte`: application orchestration and top-level UI.
 - `src/lib/components/TransportBar.svelte`: play, pause, stop, and global seek controls.
-- `src/lib/components/StemMixer.svelte`: renders the four stem rows.
+- `src/lib/components/StemMixer.svelte`: renders the stem rows.
 - `src/lib/components/StemRow.svelte`: per-stem status, mute, solo, volume, waveform, and errors.
 - `src/lib/components/WaveformView.svelte`: WaveSurfer wrapper with optional peak loading.
 - `src/lib/components/SongInfoPanel.svelte`: metadata, chords, notes, and section seek buttons.
@@ -90,7 +93,7 @@ Notes:
 
 ## Known Constraints
 
-- All four stems are required for a song to load successfully.
+- The required stems are `bass`, `drums`, and `vocals`. Additional stems are optional and loaded dynamically if present.
 - Each stem is fully fetched and decoded into an `AudioBuffer`, so very large catalogs or long stems may create memory pressure.
 - Playback depends on browser Web Audio API support and user-gesture audio resume behavior.
 - There is no song upload/import UI. New songs are added by placing files in `static/songs/<Folder>/` and regenerating the manifest.

@@ -1,6 +1,6 @@
 # Architecture And Stack
 
-Last reviewed: 2026-05-11
+Last reviewed: 2026-05-20
 
 ## Stack
 
@@ -34,7 +34,7 @@ Top-level boot sequence:
 2. `loadSongManifest()` fetches `/songs/manifest.json`.
 3. The first song is selected automatically when the manifest has songs.
 4. `loadSongBundle(entry)` fetches `song.json` and `lyrics.md`.
-5. `AudioEngine.loadSong()` fetches and decodes all four stems.
+5. `AudioEngine.loadSong()` fetches and decodes all available stems.
 6. Components render from `AudioEngineSnapshot` updates.
 
 ## State Ownership
@@ -55,8 +55,8 @@ Top-level boot sequence:
 
 Important behavior:
 
-- `STEM_ORDER` defines the required and displayed stem order: `vocals`, `drums`, `bass`, `other`.
-- `loadSong()` destroys previous resources, checks required stem definitions, loads stems concurrently, decodes audio with `AudioContext.decodeAudioData()`, and sets duration to the maximum loaded buffer duration.
+- `STEM_ORDER` defines the preferred rendering order: `vocals`, `guitar`, `strings`, `drums`, `bass`, `fx`, `other`.
+- `loadSong()` destroys previous resources, checks required stem definitions (`bass`, `drums`, `vocals`), loads available stems concurrently, decodes audio with `AudioContext.decodeAudioData()`, and sets duration to the maximum loaded buffer duration.
 - `play()` resumes the audio context, calculates a shared offset, creates one `AudioBufferSourceNode` per loaded stem, and starts all stems from the same position.
 - `pause()` stores the current playhead position and stops source nodes.
 - `stop()` stops source nodes and resets position to zero.

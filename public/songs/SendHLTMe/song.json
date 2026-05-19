@@ -2,7 +2,7 @@
   "title": "Send His Love to Me",
   "artist": "PJ Harvey",
   "key": "C",
-  "bpm": 125,
+  "bpm": 123,
   "timeSignature": "4/4",
   "chords": {
     "intro": {
@@ -38,7 +38,7 @@
       "label": "Verse 3",
       "start": 82
     },
-  {
+    {
       "label": "Chorus",
       "start": 96
     },

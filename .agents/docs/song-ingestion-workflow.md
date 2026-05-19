@@ -1,6 +1,6 @@
 # Song Ingestion Workflow
 
-Last reviewed: 2026-05-11
+Last reviewed: 2026-05-20
 
 This document explains the CLI-only process for adding songs to 4Stem Band Player.
 
@@ -17,15 +17,15 @@ static/songs/MySong/
   MySong_bass.mp3
   MySong_drums.mp3
   MySong_vocals.mp3
-  MySong_other.mp3
 ```
 
-Each song must provide exactly these four stems:
+Each song must provide at least these three required stems:
 
 - `bass`
 - `drums`
 - `vocals`
-- `other`
+
+Additional stems (e.g. `guitar`, `strings`, `fx`, `other`) are optional and are dynamically discovered.
 
 Stem files can use either folder-name or song-title prefixes. Folder-name prefixes are recommended because they keep URLs compact and avoid spaces:
 
@@ -33,7 +33,7 @@ Stem files can use either folder-name or song-title prefixes. Folder-name prefix
 MySong_bass.mp3
 MySong_drums.mp3
 MySong_vocals.mp3
-MySong_other.mp3
+MySong_guitar.mp3
 ```
 
 or:
@@ -42,7 +42,7 @@ or:
 My Song_bass.mp3
 My Song_drums.mp3
 My Song_vocals.mp3
-My Song_other.mp3
+My Song_guitar.mp3
 ```
 
 ## Step 1: Add The Song Folder
@@ -167,9 +167,9 @@ Chorus lyric line.
 
 The file must exist. Empty lyrics are allowed, but the validation script reports a warning.
 
-## Step 4: Add The Four MP3 Stems
+## Step 4: Add The MP3 Stems
 
-Place the four required MP3 files in the song folder.
+Place the required and optional MP3 files in the song folder.
 
 Example:
 
@@ -177,10 +177,10 @@ Example:
 static/songs/MySong/MySong_bass.mp3
 static/songs/MySong/MySong_drums.mp3
 static/songs/MySong/MySong_vocals.mp3
-static/songs/MySong/MySong_other.mp3
+static/songs/MySong/MySong_guitar.mp3
 ```
 
-All four files must be non-empty.
+All required files (`bass`, `drums`, `vocals`) must be present and non-empty. Any optional files (e.g. `guitar`) must also be non-empty.
 
 ## Step 5: Prepare The Song Catalog
 
@@ -266,7 +266,7 @@ Use the low-level commands when debugging a specific part of the process. Use `s
 
 `missing <stem> stem mp3`
 
-The folder does not contain one of the four required stem files. Check that the filename ends with `_bass.mp3`, `_drums.mp3`, `_vocals.mp3`, or `_other.mp3`.
+The folder does not contain one of the required stem files. Check that the filename ends with `_bass.mp3`, `_drums.mp3`, or `_vocals.mp3`.
 
 `song.json: missing <field>`
 
