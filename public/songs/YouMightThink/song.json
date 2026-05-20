@@ -1,0 +1,84 @@
+{
+  "title": "You Might Think",
+  "artist": "The Cars",
+  "key": "D",
+  "bpm": 134,
+  "timeSignature": "4/4",
+  "duration": "3:04",
+  "durationSeconds": 184,
+  "chords": {
+    "intro": {
+      "progression": "D G A D | D G A Bm | G A D D"
+    },
+    "verse": {
+      "label": "Verse",
+      "progression": "D | G | A | D | D | G | A | D"
+    },
+    "pre-chorus": {
+      "label": "Pre-chorus",
+      "progression": "Bm | A | G | Bm | A | G"
+    },
+    "chorus": {
+      "label": "Chorus",
+      "progression": "D | G | A | Bm Bm/C# | D | G | A | D"
+    },
+    "bridge": {
+      "progression": "Bm G | A Bm | G A | Bm | G A | Bm | G A G | G | A"
+    },
+    "instrumental": {
+      "label": "Instrumental",
+      "progression": "D G A D | D G A Bm | G A D"
+    }
+  },
+  "notes": "Released on Heartbeat City (1984). Transposed to the key of D major (original key is E major).",
+  "sections": [
+    {
+      "label": "Intro",
+      "start": 0
+    },
+    {
+      "label": "Verse 1",
+      "start": 14.1
+    },
+    {
+      "label": "Pre-chorus 1",
+      "start": 28.2
+    },
+    {
+      "label": "Chorus 1",
+      "start": 35.3
+    },
+    {
+      "label": "Verse 2",
+      "start": 49.4
+    },
+    {
+      "label": "Pre-chorus 2",
+      "start": 63.5
+    },
+    {
+      "label": "Chorus 2",
+      "start": 70.6
+    },
+    {
+      "label": "Bridge",
+      "start": 84.7
+    },
+    {
+      "label": "Instrumental",
+      "start": 98.8
+    },
+    {
+      "label": "Verse 3",
+      "start": 112.9
+    },
+    {
+      "label": "Pre-chorus 3",
+      "start": 127.1
+    },
+    {
+      "label": "Chorus 3",
+      "start": 134.1
+    }
+  ]
+}

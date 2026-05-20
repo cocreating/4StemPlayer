@@ -16,12 +16,15 @@ The supported stem set is dynamic, with the preferred display order:
 - `fx`
 - `other`
 
-The current bundled song catalog contains one demo song:
+The current bundled song catalog contains five demo songs:
 
+- `Bambola`: "La bambola" by "Patty Pravo"
 - `GloryBox`: "Glory Box" by "Portishead"
-- Four MP3 stems under `static/songs/GloryBox/`
-- Four precomputed waveform peak files under `static/songs/GloryBox/`
-- `song.json`, `lyrics.md`, and generated `manifest.json`
+- `IkesRap2`: "Ike’s Rap 2" by "Isaac Hayes"
+- `SendHLTMe`: "Send His Love to Me" by "PJ Harvey"
+- `YouMightThink`: "You Might Think" by "The Cars"
+
+Each song folder contains required and optional MP3 stems (vocals, guitar, strings, drums, bass, fx, other), precomputed waveform peak files, `song.json`, `lyrics.md`, and the generated global `manifest.json`.
 
 ## Current State
 

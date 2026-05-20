@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-19T23:18:10.537Z",
+  "generatedAt": "2026-05-20T00:13:53.145Z",
   "songs": [
     {
       "id": "Bambola",
@@ -101,6 +101,31 @@
         "fx": "/songs/SendHLTMe/SendHLTMe_fx.peaks.json",
         "guitar": "/songs/SendHLTMe/SendHLTMe_guitar.peaks.json",
         "strings": "/songs/SendHLTMe/SendHLTMe_strings.peaks.json"
+      }
+    },
+    {
+      "id": "YouMightThink",
+      "folder": "YouMightThink",
+      "title": "You Might Think",
+      "artist": "The Cars",
+      "bpm": 134,
+      "key": "D",
+      "timeSignature": "4/4",
+      "songJsonUrl": "/songs/YouMightThink/song.json",
+      "lyricsUrl": "/songs/YouMightThink/lyrics.md",
+      "stems": {
+        "bass": "/songs/YouMightThink/YouMightThink_bass.mp3",
+        "drums": "/songs/YouMightThink/YouMightThink_drums.mp3",
+        "vocals": "/songs/YouMightThink/YouMightThink_vocals.mp3",
+        "guitar": "/songs/YouMightThink/YouMightThink_guitar.mp3",
+        "piano": "/songs/YouMightThink/YouMightThink_piano.mp3"
+      },
+      "peaks": {
+        "bass": "/songs/YouMightThink/YouMightThink_bass.peaks.json",
+        "drums": "/songs/YouMightThink/YouMightThink_drums.peaks.json",
+        "vocals": "/songs/YouMightThink/YouMightThink_vocals.peaks.json",
+        "guitar": "/songs/YouMightThink/YouMightThink_guitar.peaks.json",
+        "piano": "/songs/YouMightThink/YouMightThink_piano.peaks.json"
       }
     }
   ]
