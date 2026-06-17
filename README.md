@@ -81,6 +81,14 @@ Transpose keeps the zero-cost playback path when no pitch shift is active. When 
 
 To reduce audible clicks and clipping during live transpose changes, the engine reuses active pitch nodes when the routing is already in place and only fades the master output when pitch routing has to be inserted or removed. Output headroom is plain gain, not compression: `0.7` for unshifted or downward transpose, `0.62` for `+1`/`+2`, and `0.55` for `+3` or higher effective upward transpose.
 
+## Playback transition safety
+
+Inserting or removing pitch routing is asynchronous: the SoundTouch AudioWorklet can take tens of milliseconds to initialize, and the live graph swap also awaits a short master fade. The audio engine guards these awaits so a transition that the user has since superseded can never restart audio against a stale playhead.
+
+Each playback-changing action (`stop`, `pause`, `seek`, loading a new song, and starting a fresh `play`) advances an internal playback epoch. Asynchronous graph work — both starting playback and rebuilding the pitch graph after a transpose or tempo change — captures the current epoch and re-checks it after every `await`. If the epoch has moved on, the operation aborts instead of starting sources. A start guard prevents a second `play` from launching duplicate sources while the worklet is still initializing, and graph rebuilds are serialized so two back-to-back transpose or tempo changes cannot interleave into overlapping source sets.
+
+This prevents a previously observed defect where transposing and then pressing Play or Stop while the pitch worklet was loading could leave orphaned audio sources running while the transport reported a stopped, frozen playhead — which surfaced as the position readout jumping or the playback appearing to accelerate uncontrollably.
+
 ## Tempo approach
 
 Dynamic BPM changes keep section markers, waveforms, and seeking on the original song timeline. The audio engine stores the detected metadata BPM as the source BPM and applies a global tempo ratio during playback. When the ratio is not `1`, all stems run through the same SoundTouch path used for transpose so playback speed can change while preserving pitch/key. Drums are only pitch-compensated for tempo changes; they are still excluded from transpose.

@@ -176,6 +176,9 @@ export class AudioEngine {
   private playing = false;
   private loading = false;
   private errors: string[] = [];
+  private starting = false;
+  private playbackEpoch = 0;
+  private graphMutation: Promise<void> = Promise.resolve();
 
   constructor(options: EngineOptions = {}) {
     this.audioContext = options.audioContext ?? createBrowserAudioContext();
@@ -260,18 +263,33 @@ export class AudioEngine {
   }
 
   async play() {
-    if (this.playing || this.stems.size === 0 || this.errors.length > 0) {
+    if (this.playing || this.starting || this.stems.size === 0 || this.errors.length > 0) {
       return;
     }
 
-    await this.audioContext.resume?.();
-    await this.syncPitchNodes();
-    this.position = clamp(this.position, 0, this.duration);
-    this.startedAt = this.audioContext.currentTime;
-    this.playing = true;
-    this.startSources(this.position);
-    this.startDriftCorrection();
-    this.emit();
+    this.starting = true;
+    const epoch = ++this.playbackEpoch;
+
+    try {
+      await this.runExclusive(async () => {
+        await this.audioContext.resume?.();
+        await this.syncPitchNodes();
+        // The user may have pressed Stop/Play or seeked while the pitch worklet
+        // was initializing. If so, abandon this start instead of launching
+        // orphaned sources that would play while the engine reports "stopped".
+        if (this.playbackEpoch !== epoch) {
+          return;
+        }
+        this.position = clamp(this.position, 0, this.duration);
+        this.startedAt = this.audioContext.currentTime;
+        this.playing = true;
+        this.startSources(this.position);
+        this.startDriftCorrection();
+        this.emit();
+      });
+    } finally {
+      this.starting = false;
+    }
   }
 
   pause() {
@@ -282,6 +300,7 @@ export class AudioEngine {
     this.position = this.getPosition();
     this.stopSources();
     this.playing = false;
+    this.playbackEpoch += 1;
     this.stopDriftCorrection();
     this.emit();
   }
@@ -290,12 +309,14 @@ export class AudioEngine {
     this.stopSources();
     this.playing = false;
     this.position = 0;
+    this.playbackEpoch += 1;
     this.stopDriftCorrection();
     this.emit();
   }
 
   seek(time: number) {
     this.position = clamp(Number.isFinite(time) ? time : 0, 0, this.duration || Number.MAX_SAFE_INTEGER);
+    this.playbackEpoch += 1;
     if (this.playing) {
       this.stopSources();
       this.startedAt = this.audioContext.currentTime;
@@ -381,6 +402,8 @@ export class AudioEngine {
   }
 
   destroy() {
+    this.playbackEpoch += 1;
+    this.starting = false;
     this.stopDriftCorrection();
     this.stopSources();
     for (const stem of this.stems.values()) {
@@ -560,25 +583,59 @@ export class AudioEngine {
       return;
     }
 
+    const epoch = this.playbackEpoch;
+    await this.runExclusive(() => this.reconcilePitchGraph(epoch));
+  }
+
+  private async reconcilePitchGraph(epoch: number) {
+    // A newer transition (stop, pause, seek, new song, or a fresh play) has
+    // superseded the change that scheduled this reconcile. Bail so we never
+    // restart sources against a stale playhead.
+    if (!this.isPlaybackCurrent(epoch)) {
+      return;
+    }
+
     if (!this.pitchRoutingNeedsRestart()) {
       await this.syncPitchNodes();
+      if (!this.isPlaybackCurrent(epoch)) {
+        return;
+      }
       this.updateActiveSourcePlaybackRates();
       this.rampMasterGain(this.currentMasterGainTarget());
       return;
     }
 
     await this.fadeMasterGain(0);
-    if (!this.playing) {
+    if (!this.isPlaybackCurrent(epoch)) {
       return;
     }
 
     const nextPosition = this.getPosition();
     this.stopSources();
     await this.syncPitchNodes();
+    // The pitch worklet can take tens of milliseconds to initialize. If the
+    // user stopped/seeked during that window, abort instead of launching
+    // sources the engine would otherwise treat as stopped.
+    if (!this.isPlaybackCurrent(epoch)) {
+      return;
+    }
     this.position = nextPosition;
     this.startedAt = this.audioContext.currentTime;
     this.startSources(nextPosition);
     this.rampMasterGain(this.currentMasterGainTarget());
+  }
+
+  private isPlaybackCurrent(epoch: number) {
+    return this.playing && this.playbackEpoch === epoch;
+  }
+
+  private runExclusive<T>(task: () => Promise<T>): Promise<T> {
+    const result = this.graphMutation.then(task, task);
+    this.graphMutation = result.then(
+      () => undefined,
+      () => undefined
+    );
+    return result;
   }
 
   private stemNeedsPitchNode(stem: LoadedStem) {

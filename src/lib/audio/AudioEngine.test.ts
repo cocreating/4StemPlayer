@@ -544,4 +544,76 @@ describe('AudioEngine', () => {
     expect(firstSources.every((source) => source.stopped)).toBe(true);
     expect(firstGains.every((gain) => gain.disconnected)).toBe(true);
   });
+
+  it('does not leave sources running when stopped during a live transpose graph swap', async () => {
+    const context = new FakeAudioContext();
+    let firstNode = true;
+    const fetchArrayBuffer = vi.fn(async () => new ArrayBuffer(8));
+    const createPitchShiftNode = vi.fn(async () => {
+      // Simulate the user pressing Stop while the SoundTouch worklet is still
+      // initializing during a live transpose-triggered graph rebuild.
+      if (firstNode) {
+        firstNode = false;
+        engine.stop();
+      }
+      return new FakePitchShiftNode();
+    });
+    const engine = new AudioEngine({
+      audioContext: context as unknown as AudioContext,
+      fetchArrayBuffer,
+      createPitchShiftNode,
+      wait: async () => {}
+    } as unknown as ConstructorParameters<typeof AudioEngine>[0]);
+
+    await engine.loadSong({
+      id: 'glorybox',
+      title: 'Glory Box',
+      stems: stemNames.map((name) => ({ name, label: name, url: `${name}.mp3` }))
+    });
+    await engine.play();
+    await engine.setGlobalTransposeSemitones(2);
+
+    const liveSources = context.sources.filter(
+      (source) => source.startCalls.length > 0 && !source.stopped
+    );
+    const snapshot = engine.getSnapshot();
+
+    expect(snapshot.playing).toBe(false);
+    expect(snapshot.position).toBe(0);
+    expect(liveSources).toHaveLength(0);
+  });
+
+  it('ignores a stale play start when stopped while the pitch worklet initializes', async () => {
+    const context = new FakeAudioContext();
+    let firstNode = true;
+    const createPitchShiftNode = vi.fn(async () => {
+      if (firstNode) {
+        firstNode = false;
+        engine.stop();
+      }
+      return new FakePitchShiftNode();
+    });
+    const engine = new AudioEngine({
+      audioContext: context as unknown as AudioContext,
+      fetchArrayBuffer: vi.fn(async () => new ArrayBuffer(8)),
+      createPitchShiftNode,
+      wait: async () => {}
+    } as unknown as ConstructorParameters<typeof AudioEngine>[0]);
+
+    await engine.loadSong({
+      id: 'glorybox',
+      title: 'Glory Box',
+      stems: stemNames.map((name) => ({ name, label: name, url: `${name}.mp3` }))
+    });
+    // Pre-arm a transpose so play() must initialize a pitch node, during which Stop fires.
+    await engine.setGlobalTransposeSemitones(2);
+    await engine.play();
+
+    const liveSources = context.sources.filter(
+      (source) => source.startCalls.length > 0 && !source.stopped
+    );
+
+    expect(engine.getSnapshot().playing).toBe(false);
+    expect(liveSources).toHaveLength(0);
+  });
 });
