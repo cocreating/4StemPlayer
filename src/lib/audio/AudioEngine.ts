@@ -702,7 +702,9 @@ export class AudioEngine {
   }
 
   private getPosition() {
-    if (!this.playing) {
+    // Freeze the playhead while an offline re-render is in flight so the
+    // transport visibly pauses during the reconfig instead of drifting.
+    if (!this.playing || this.rendering) {
       return this.position;
     }
     return clamp(this.position + ((this.audioContext.currentTime - this.startedAt) * this.tempoRatio), 0, this.duration);
@@ -828,6 +830,8 @@ export class AudioEngine {
     const resumePosition = wasPlaying ? this.getPosition() : this.position;
 
     if (wasPlaying) {
+      // Pin the playhead at the current spot so it holds steady during render.
+      this.position = resumePosition;
       await this.fadeMasterGain(0);
       if (this.playbackEpoch !== epoch) {
         return;

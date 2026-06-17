@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onDestroy, onMount } from 'svelte';
+  import { onDestroy, onMount, tick } from 'svelte';
   import {
     AudioEngine,
     type AudioEngineSnapshot,
@@ -57,6 +57,28 @@
   let sectionMarkers = $derived(songBundle?.metadata.sections ?? []);
   let lyricsText = $derived(songBundle?.lyricsMarkdown || songBundle?.metadata.lyrics || '');
   let applyingTransform = $derived(engineSnapshot?.rendering ?? false);
+  const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev';
+
+  function isMobileViewport() {
+    return typeof window !== 'undefined' && (window.matchMedia?.('(max-width: 820px)').matches ?? false);
+  }
+
+  async function revealPanelOnMobile(panelId: string) {
+    if (!isMobileViewport()) {
+      return;
+    }
+    await tick();
+    requestAnimationFrame(() => {
+      document.getElementById(panelId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+  function scrollToTopOnMobile() {
+    if (!isMobileViewport()) {
+      return;
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 
   function getBrowserStorage() {
     try {
@@ -194,15 +216,22 @@
   }
 
   function toggleSections() {
-    if (sectionMarkers.length > 0) {
-      sectionsOpen = !sectionsOpen;
-      mixerOpen = false;
-      lyricsOpen = false;
+    if (sectionMarkers.length === 0) {
+      return;
+    }
+    sectionsOpen = !sectionsOpen;
+    mixerOpen = false;
+    lyricsOpen = false;
+    if (sectionsOpen) {
+      void revealPanelOnMobile('sections-popover');
+    } else {
+      scrollToTopOnMobile();
     }
   }
 
   function closeSections() {
     sectionsOpen = false;
+    scrollToTopOnMobile();
   }
 
   function toggleMixer() {
@@ -210,11 +239,17 @@
       mixerOpen = !mixerOpen;
       sectionsOpen = false;
       lyricsOpen = false;
+      if (mixerOpen) {
+        void revealPanelOnMobile('mixer-popover');
+      } else {
+        scrollToTopOnMobile();
+      }
     }
   }
 
   function closeMixer() {
     mixerOpen = false;
+    scrollToTopOnMobile();
   }
 
   function toggleLyrics() {
@@ -222,11 +257,17 @@
       lyricsOpen = !lyricsOpen;
       sectionsOpen = false;
       mixerOpen = false;
+      if (lyricsOpen) {
+        void revealPanelOnMobile('lyrics-popover');
+      } else {
+        scrollToTopOnMobile();
+      }
     }
   }
 
   function closeLyrics() {
     lyricsOpen = false;
+    scrollToTopOnMobile();
   }
 
   function togglePlayback() {
@@ -268,9 +309,10 @@
   });
 </script>
 
-<main class="app-shell">
+<main class="app-shell" class:app-reconfiguring={applyingTransform}>
   <header class="app-header" aria-labelledby="app-title">
     <div>
+      <p class="app-version" title="Build version">{appVersion}</p>
       <p class="eyebrow">🐧PENGUINS🌈</p>
       <h1 id="app-title">4Stem Band Player</h1>
     </div>
@@ -381,5 +423,11 @@
         {/if}
       </aside>
     </section>
+  {/if}
+
+  {#if applyingTransform}
+    <div class="reconfig-overlay" role="status" aria-live="polite" aria-label="Applying key and tempo">
+      <span class="visually-hidden">Applying key &amp; tempo…</span>
+    </div>
   {/if}
 </main>
