@@ -292,6 +292,52 @@ pre {
   color: var(--accent-strong);
 }
 
+.app-header-toggles {
+  display: flex;
+  align-items: end;
+  gap: 0.5rem;
+}
+
+.lite-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  align-self: end;
+  min-height: 2.55rem;
+  padding: 0 0.85rem;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px rgb(15 23 42 / 0.16), var(--shadow);
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.lite-toggle:hover:not(:disabled) {
+  color: var(--accent-strong);
+}
+
+.lite-toggle-dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 999px;
+  background: var(--muted);
+  box-shadow: inset 0 0 0 1px rgb(15 23 42 / 0.18);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.lite-toggle-on {
+  color: var(--accent-strong);
+  box-shadow: inset 0 0 0 1px var(--accent), var(--shadow);
+}
+
+.lite-toggle-on .lite-toggle-dot {
+  background: var(--accent-strong);
+  box-shadow: 0 0 0 3px rgb(15 118 110 / 0.18);
+}
+
 .song-selector label,
 .transport-seek label,
 .volume-control label {

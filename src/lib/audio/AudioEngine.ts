@@ -52,12 +52,54 @@ export interface AudioEngineSnapshot {
   stems: Record<string, StemPlaybackState>;
 }
 
+export interface DecodeProfile {
+  /** Downmix every stem to a single channel to roughly halve decoded memory. */
+  mono: boolean;
+  /** Resample decoded stems to this rate (Hz). `null` keeps the source rate. */
+  sampleRate: number | null;
+}
+
+interface OfflineRenderContextLike {
+  createBufferSource(): AudioBufferSourceNode;
+  readonly destination: AudioNode;
+  startRendering(): Promise<AudioBuffer>;
+}
+
 interface EngineOptions {
   audioContext?: AudioContext;
   fetchArrayBuffer?: (url: string) => Promise<ArrayBuffer>;
   createPitchShiftNode?: (audioContext: AudioContext) => Promise<PitchShiftNodeLike>;
   driftCorrectionIntervalMs?: number;
   wait?: (milliseconds: number) => Promise<void>;
+  /**
+   * When set, decoded stems are downmixed/resampled to shrink their in-memory
+   * footprint (a 6-stem song drops from ~450 MB to ~110 MB at mono/22.05 kHz).
+   * Omit it to keep full-fidelity buffers (the default desktop behaviour).
+   */
+  decodeProfile?: DecodeProfile | null;
+  createOfflineAudioContext?: (
+    channels: number,
+    length: number,
+    sampleRate: number
+  ) => OfflineRenderContextLike;
+}
+
+function defaultCreateOfflineAudioContext(
+  channels: number,
+  length: number,
+  sampleRate: number
+): OfflineRenderContextLike {
+  const OfflineCtor =
+    (typeof globalThis !== 'undefined' &&
+      ((globalThis as unknown as { OfflineAudioContext?: typeof OfflineAudioContext })
+        .OfflineAudioContext ??
+        (globalThis as unknown as { webkitOfflineAudioContext?: typeof OfflineAudioContext })
+          .webkitOfflineAudioContext)) ||
+    undefined;
+  if (!OfflineCtor) {
+    throw new Error('OfflineAudioContext is not available in this browser.');
+  }
+  return new OfflineCtor(channels, length, sampleRate) as unknown as OfflineRenderContextLike;
 }
 
 interface LoadedStem extends StemPlaybackState {
@@ -162,6 +204,12 @@ export class AudioEngine {
   private readonly createPitchShiftNode: (audioContext: AudioContext) => Promise<PitchShiftNodeLike>;
   private readonly driftCorrectionIntervalMs: number;
   private readonly wait: (milliseconds: number) => Promise<void>;
+  private readonly decodeProfile: DecodeProfile | null;
+  private readonly createOfflineAudioContext: (
+    channels: number,
+    length: number,
+    sampleRate: number
+  ) => OfflineRenderContextLike;
   private readonly masterGainNode: GainNode;
   private readonly listeners = new Set<(snapshot: AudioEngineSnapshot) => void>();
   private readonly stems = new Map<StemName, LoadedStem>();
@@ -188,6 +236,9 @@ export class AudioEngine {
       options.driftCorrectionIntervalMs ?? DEFAULT_DRIFT_INTERVAL_MS;
     this.wait =
       options.wait ?? ((milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)));
+    this.decodeProfile = options.decodeProfile ?? null;
+    this.createOfflineAudioContext =
+      options.createOfflineAudioContext ?? defaultCreateOfflineAudioContext;
     this.masterGainNode = this.audioContext.createGain();
     this.configureMasterOutput();
   }
@@ -456,7 +507,8 @@ export class AudioEngine {
 
     try {
       const audioData = await this.fetchArrayBuffer(stem.url);
-      loadedStem.buffer = await this.audioContext.decodeAudioData(audioData.slice(0));
+      const decoded = await this.audioContext.decodeAudioData(audioData.slice(0));
+      loadedStem.buffer = await this.processDecodedBuffer(decoded);
       loadedStem.loaded = true;
       loadedStem.error = null;
     } catch (error) {
@@ -465,6 +517,38 @@ export class AudioEngine {
     } finally {
       loadedStem.loading = false;
       this.emit();
+    }
+  }
+
+  private async processDecodedBuffer(buffer: AudioBuffer): Promise<AudioBuffer> {
+    const profile = this.decodeProfile;
+    if (!profile) {
+      return buffer;
+    }
+
+    const targetSampleRate = profile.sampleRate ?? buffer.sampleRate;
+    const targetChannels = profile.mono ? 1 : buffer.numberOfChannels;
+
+    // Nothing to gain if the buffer already matches the requested profile.
+    if (targetSampleRate >= buffer.sampleRate && targetChannels >= buffer.numberOfChannels) {
+      return buffer;
+    }
+
+    const length = Math.max(1, Math.ceil(buffer.duration * targetSampleRate));
+
+    try {
+      const offline = this.createOfflineAudioContext(targetChannels, length, targetSampleRate);
+      const source = offline.createBufferSource();
+      source.buffer = buffer;
+      // Connecting a stereo source to a mono destination performs a spec
+      // downmix; the offline context resamples to the target rate on render.
+      source.connect(offline.destination);
+      source.start();
+      return await offline.startRendering();
+    } catch {
+      // If offline rendering is unavailable, fall back to the full-fidelity
+      // buffer rather than failing to load the stem.
+      return buffer;
     }
   }
 

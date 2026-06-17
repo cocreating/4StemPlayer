@@ -52,12 +52,21 @@ npm run build
 
 ## Browser preferences
 
-The player remembers two local browser preferences:
+The player remembers three local browser preferences:
 
 - the selected light or dark theme
 - the last selected song
+- the low-memory ("Lite") mode setting (`on`, `off`, or `auto`)
 
-Both preferences are stored in `localStorage` on the user's browser. If a stored song is no longer present in the manifest, the player falls back to the first available song.
+All preferences are stored in `localStorage` on the user's browser. If a stored song is no longer present in the manifest, the player falls back to the first available song.
+
+## Low-memory (Lite) mode
+
+Stems are decoded to uncompressed PCM and held in memory while a song is loaded. At 44.1 kHz stereo this is roughly 75 MB per three-and-a-half-minute stem, so a six-stem song can occupy around 450 MB — enough to get a tab evicted on phones.
+
+Lite mode shrinks that footprint by downmixing each stem to mono and resampling it to 22.05 kHz as it loads, which cuts the decoded size to about a quarter (a six-stem song drops to roughly 110 MB). The trade-off is reduced stereo image and high-frequency detail, which is usually acceptable for practice. Drums, transpose, and tempo behave exactly as before; only the stored buffer fidelity changes.
+
+The `Lite` toggle lives in the header next to the theme switch. Its default is chosen automatically (`auto`) from device and network signals — data-saver mode, slow connections, low `deviceMemory`, or a coarse-pointer phone-sized screen all turn it on. Toggling it sets an explicit `on`/`off` preference and reloads the current song so the new decode profile takes effect. The conversion runs through an `OfflineAudioContext`; if that is unavailable the player falls back to the full-fidelity buffer rather than failing to load.
 
 ## Player controls
 

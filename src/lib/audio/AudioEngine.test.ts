@@ -545,6 +545,58 @@ describe('AudioEngine', () => {
     expect(firstGains.every((gain) => gain.disconnected)).toBe(true);
   });
 
+  it('keeps full-fidelity buffers when no decode profile is configured', async () => {
+    const { context, engine } = makeEngine();
+    const createOffline = vi.fn();
+    // makeEngine has no decodeProfile, so the offline context must never be used.
+    (engine as unknown as { createOfflineAudioContext: unknown }).createOfflineAudioContext =
+      createOffline;
+
+    await engine.loadSong({
+      id: 'glorybox',
+      title: 'Glory Box',
+      stems: stemNames.map((name) => ({ name, label: name, url: `${name}.mp3` }))
+    });
+
+    expect(createOffline).not.toHaveBeenCalled();
+    expect(context.decodedBuffers).toBe(4);
+  });
+
+  it('downmixes and resamples decoded stems through an offline context in low-memory mode', async () => {
+    const context = new FakeAudioContext();
+    const renders: Array<{ channels: number; length: number; sampleRate: number }> = [];
+    const createOfflineAudioContext = vi.fn((channels: number, length: number, sampleRate: number) => {
+      renders.push({ channels, length, sampleRate });
+      return {
+        destination: {},
+        createBufferSource() {
+          return { buffer: null, connect() {}, start() {} } as unknown as AudioBufferSourceNode;
+        },
+        async startRendering() {
+          return { duration: 24, numberOfChannels: channels, sampleRate } as AudioBuffer;
+        }
+      };
+    });
+    const engine = new AudioEngine({
+      audioContext: context as unknown as AudioContext,
+      fetchArrayBuffer: vi.fn(async () => new ArrayBuffer(8)),
+      decodeProfile: { mono: true, sampleRate: 22050 },
+      createOfflineAudioContext
+    } as unknown as ConstructorParameters<typeof AudioEngine>[0]);
+
+    await engine.loadSong({
+      id: 'glorybox',
+      title: 'Glory Box',
+      stems: stemNames.map((name) => ({ name, label: name, url: `${name}.mp3` }))
+    });
+
+    expect(createOfflineAudioContext).toHaveBeenCalledTimes(4);
+    expect(renders.every((render) => render.channels === 1)).toBe(true);
+    expect(renders.every((render) => render.sampleRate === 22050)).toBe(true);
+    // FakeAudioContext decodes buffers with duration 24 -> ceil(24 * 22050) frames.
+    expect(renders.every((render) => render.length === Math.ceil(24 * 22050))).toBe(true);
+  });
+
   it('does not leave sources running when stopped during a live transpose graph swap', async () => {
     const context = new FakeAudioContext();
     let firstNode = true;

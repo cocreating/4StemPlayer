@@ -1,11 +1,19 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
-  import { AudioEngine, type AudioEngineSnapshot, type StemName } from '$lib/audio/AudioEngine';
+  import {
+    AudioEngine,
+    type AudioEngineSnapshot,
+    type DecodeProfile,
+    type StemName
+  } from '$lib/audio/AudioEngine';
   import { shouldHandlePlaybackShortcut } from '$lib/keyboard';
   import { loadingFeedbackText } from '$lib/loadingFeedback';
   import {
+    readLowMemoryPreference,
     readStoredTheme,
     resolveInitialSongId,
+    resolveLowMemoryActive,
+    saveLowMemoryPreference,
     saveSelectedSongId,
     saveThemePreference,
     type ThemeMode
@@ -16,6 +24,7 @@
   import SongSelector from './SongSelector.svelte';
   import ThemeToggle from './ThemeToggle.svelte';
   import MixerPopover from './MixerPopover.svelte';
+  import LowMemoryToggle from './LowMemoryToggle.svelte';
   import StemMixer from './StemMixer.svelte';
   import TransportBar from './TransportBar.svelte';
   import SectionsPopover from './SectionsPopover.svelte';
@@ -33,6 +42,8 @@
   let songLoading = $state(false);
   let appError = $state('');
   let theme = $state<ThemeMode>('light');
+  let lowMemoryActive = $state(false);
+  const LOW_MEMORY_DECODE_PROFILE: DecodeProfile = { mono: true, sampleRate: 22050 };
   let sectionsOpen = $state(false);
   let mixerOpen = $state(false);
   let lyricsOpen = $state(false);
@@ -61,6 +72,18 @@
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
     applyTheme(nextTheme);
     saveThemePreference(getBrowserStorage(), nextTheme);
+  }
+
+  function toggleLowMemory() {
+    const nextActive = !lowMemoryActive;
+    lowMemoryActive = nextActive;
+    saveLowMemoryPreference(getBrowserStorage(), nextActive ? 'on' : 'off');
+
+    // Buffers are already decoded at the previous fidelity, so re-load the
+    // current song to apply the new decode profile.
+    if (selectedSongId) {
+      void selectSong(selectedSongId);
+    }
   }
 
   async function boot() {
@@ -99,7 +122,9 @@
 
     unsubscribe?.();
     engine?.destroy();
-    engine = new AudioEngine();
+    engine = new AudioEngine({
+      decodeProfile: lowMemoryActive ? LOW_MEMORY_DECODE_PROFILE : null
+    });
     unsubscribe = engine.subscribe((snapshot) => {
       engineSnapshot = snapshot;
     });
@@ -219,6 +244,7 @@
 
   onMount(() => {
     applyTheme(readStoredTheme(getBrowserStorage()));
+    lowMemoryActive = resolveLowMemoryActive(readLowMemoryPreference(getBrowserStorage()));
     void boot();
     window.addEventListener('keydown', handleKeydown);
 
@@ -240,7 +266,10 @@
       <h1 id="app-title">4Stem Band Player</h1>
     </div>
     <div class="app-header-actions">
-      <ThemeToggle {theme} toggle={toggleTheme} />
+      <div class="app-header-toggles">
+        <ThemeToggle {theme} toggle={toggleTheme} />
+        <LowMemoryToggle active={lowMemoryActive} toggle={toggleLowMemory} />
+      </div>
       <SongSelector
         {songs}
         selectedId={selectedSongId}

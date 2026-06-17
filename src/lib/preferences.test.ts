@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  detectLowMemoryDefault,
+  readLowMemoryPreference,
   readStoredTheme,
   resolveInitialSongId,
+  resolveLowMemoryActive,
+  saveLowMemoryPreference,
   saveSelectedSongId,
   saveThemePreference
 } from './preferences';
@@ -50,5 +54,56 @@ describe('song preferences', () => {
     saveSelectedSongId(storage, 'deleted-song');
 
     expect(resolveInitialSongId(songs, storage)).toBe('bambola');
+  });
+});
+
+describe('low-memory preferences', () => {
+  const desktopEnv = {
+    navigator: { deviceMemory: 16, connection: { saveData: false, effectiveType: '4g' } },
+    matchMedia: () => ({ matches: false })
+  };
+
+  it('defaults to auto when nothing valid is stored', () => {
+    const storage = new MemoryStorage();
+    expect(readLowMemoryPreference(storage)).toBe('auto');
+
+    storage.setItem('4stem-player:low-memory', 'nonsense');
+    expect(readLowMemoryPreference(storage)).toBe('auto');
+  });
+
+  it('round-trips an explicit on/off preference', () => {
+    const storage = new MemoryStorage();
+    saveLowMemoryPreference(storage, 'on');
+    expect(readLowMemoryPreference(storage)).toBe('on');
+    saveLowMemoryPreference(storage, 'off');
+    expect(readLowMemoryPreference(storage)).toBe('off');
+  });
+
+  it('honors explicit on/off regardless of the environment', () => {
+    expect(resolveLowMemoryActive('on', desktopEnv)).toBe(true);
+    expect(
+      resolveLowMemoryActive('off', {
+        navigator: { connection: { saveData: true } },
+        matchMedia: () => ({ matches: true })
+      })
+    ).toBe(false);
+  });
+
+  it('auto-enables on data-saver, slow networks, low memory, or phone form factors', () => {
+    expect(detectLowMemoryDefault({ navigator: { connection: { saveData: true } } })).toBe(true);
+    expect(detectLowMemoryDefault({ navigator: { connection: { effectiveType: '3g' } } })).toBe(true);
+    expect(detectLowMemoryDefault({ navigator: { deviceMemory: 2 } })).toBe(true);
+    expect(
+      detectLowMemoryDefault({
+        navigator: {},
+        matchMedia: (query: string) =>
+          ({ matches: query.includes('coarse') || query.includes('820px') })
+      })
+    ).toBe(true);
+  });
+
+  it('stays off on a capable desktop environment', () => {
+    expect(detectLowMemoryDefault(desktopEnv)).toBe(false);
+    expect(resolveLowMemoryActive('auto', desktopEnv)).toBe(false);
   });
 });
