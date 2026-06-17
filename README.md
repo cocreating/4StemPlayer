@@ -115,6 +115,8 @@ Render mode keeps the original decoded buffers so every re-render starts from cl
 
 The mode is chosen per device automatically; desktop keeps the instant real-time path. On mobile the snapshot/meter loop is also throttled to lighten the main thread.
 
+Because the offline render is not CPU-bound, it uses the engine's highest-quality settings: `lanczos` resampling and full (non-`quickSeek`) WSOLA time-stretch with a wider overlap. SoundTouch's default `quickSeek` is what makes harmonic stems such as bass sound detuned/dissonant after a transpose, so it is disabled for the render. The real-time desktop path keeps the lighter defaults to stay responsive.
+
 ## Output limiting
 
 The master bus runs through a `DynamicsCompressorNode` configured as a fast brickwall limiter (threshold −1.5 dB, ratio 20, knee 0) before the destination. Summing several stems — especially with time-stretch peak overshoot — can exceed 0 dBFS; the limiter catches those peaks instead of letting the device hard-clip. The per-transpose headroom gain (`0.55`–`0.7`) is retained on top of the limiter.

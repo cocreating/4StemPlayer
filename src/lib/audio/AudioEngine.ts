@@ -120,7 +120,13 @@ async function defaultCreateRenderedBuffer(
     input,
     processorUrl,
     pitchSemitones: transform.pitchSemitones,
-    playbackRate: transform.playbackRate
+    playbackRate: transform.playbackRate,
+    // Offline rendering is not CPU-bound, so use the highest-quality settings:
+    // lanczos resampling plus full (non-quick) WSOLA seeking with a wider
+    // overlap. quickSeek (the default) is what makes harmonic stems such as
+    // bass sound detuned/dissonant after a transpose.
+    interpolationStrategy: 'lanczos',
+    stretchParameters: { quickSeek: false, overlapMs: 12 }
   });
 }
 
