@@ -77,6 +77,22 @@ class FakePitchShiftNode {
   }
 }
 
+class FakeDynamicsCompressor {
+  threshold = new FakeAudioParam(-24);
+  knee = new FakeAudioParam(30);
+  ratio = new FakeAudioParam(12);
+  attack = new FakeAudioParam(0.003);
+  release = new FakeAudioParam(0.25);
+  connectedTo: unknown[] = [];
+
+  connect(destination: unknown) {
+    this.connectedTo.push(destination);
+    return destination;
+  }
+
+  disconnect() {}
+}
+
 class FakeBufferSourceNode {
   buffer: AudioBuffer | null = null;
   playbackRate = new FakeAudioParam(1);
@@ -633,6 +649,161 @@ describe('AudioEngine', () => {
     expect(snapshot.playing).toBe(false);
     expect(snapshot.position).toBe(0);
     expect(liveSources).toHaveLength(0);
+  });
+
+  it('render mode pre-renders transposed stems offline and never spins up pitch worklets', async () => {
+    const context = new FakeAudioContext();
+    const renderCalls: Array<{ pitchSemitones: number; playbackRate: number }> = [];
+    const createRenderedBuffer = vi.fn(async (input: AudioBuffer, transform: { pitchSemitones: number; playbackRate: number }) => {
+      renderCalls.push(transform);
+      return { duration: input.duration / transform.playbackRate } as AudioBuffer;
+    });
+    const createPitchShiftNode = vi.fn(async () => new FakePitchShiftNode());
+    const engine = new AudioEngine({
+      audioContext: context as unknown as AudioContext,
+      fetchArrayBuffer: vi.fn(async () => new ArrayBuffer(8)),
+      pitchTempoMode: 'render',
+      createRenderedBuffer,
+      createPitchShiftNode,
+      wait: async () => {}
+    } as unknown as ConstructorParameters<typeof AudioEngine>[0]);
+
+    await engine.loadSong({
+      id: 'glorybox',
+      title: 'Glory Box',
+      stems: stemNames.map((name) => ({ name, label: name, url: `${name}.mp3` }))
+    });
+    await engine.setGlobalTransposeSemitones(2);
+    await engine.play();
+
+    // vocals, bass, other render at +2; drums are excluded; no worklet is created.
+    expect(createPitchShiftNode).not.toHaveBeenCalled();
+    expect(createRenderedBuffer).toHaveBeenCalledTimes(3);
+    expect(renderCalls.every((call) => call.pitchSemitones === 2 && call.playbackRate === 1)).toBe(true);
+    // Rendered buffers play at native rate (tempo/pitch already baked in).
+    expect(context.sources.every((source) => source.playbackRate.value === 1)).toBe(true);
+  });
+
+  it('render mode bakes tempo into buffers and maps the playhead through the tempo ratio', async () => {
+    const context = new FakeAudioContext();
+    const renderCalls: Array<{ pitchSemitones: number; playbackRate: number }> = [];
+    const createRenderedBuffer = vi.fn(async (input: AudioBuffer, transform: { pitchSemitones: number; playbackRate: number }) => {
+      renderCalls.push(transform);
+      return { duration: input.duration / transform.playbackRate } as AudioBuffer;
+    });
+    const engine = new AudioEngine({
+      audioContext: context as unknown as AudioContext,
+      fetchArrayBuffer: vi.fn(async () => new ArrayBuffer(8)),
+      pitchTempoMode: 'render',
+      createRenderedBuffer,
+      createPitchShiftNode: vi.fn(async () => new FakePitchShiftNode()),
+      wait: async () => {}
+    } as unknown as ConstructorParameters<typeof AudioEngine>[0]);
+
+    await engine.loadSong({
+      id: 'glorybox',
+      title: 'Glory Box',
+      stems: stemNames.map((name) => ({ name, label: name, url: `${name}.mp3` }))
+    });
+    await engine.setTempoRatio(1.25);
+    await engine.play();
+
+    // Tempo applies to every stem, including drums.
+    expect(createRenderedBuffer).toHaveBeenCalledTimes(4);
+    expect(renderCalls.every((call) => call.playbackRate === 1.25 && call.pitchSemitones === 0)).toBe(true);
+    expect(context.sources.every((source) => source.playbackRate.value === 1)).toBe(true);
+    expect(context.sources.every((source) => source.startCalls[0]?.offset === 0)).toBe(true);
+
+    expect(engine.getSnapshot().tempoRatio).toBe(1.25);
+    context.currentTime += 2;
+    expect(engine.getSnapshot().position).toBeCloseTo(2.5); // 2s * 1.25
+
+    engine.seek(5);
+    const latest = context.sources.slice(-4);
+    // Original time 5 maps to rendered offset 5 / 1.25 = 4.
+    expect(latest.every((source) => source.startCalls.at(-1)?.offset === 4)).toBe(true);
+  });
+
+  it('render mode re-renders on a new transpose and reverts to the original on reset', async () => {
+    const context = new FakeAudioContext();
+    const createRenderedBuffer = vi.fn(async (input: AudioBuffer, transform: { playbackRate: number }) => {
+      return { duration: input.duration / transform.playbackRate } as AudioBuffer;
+    });
+    const engine = new AudioEngine({
+      audioContext: context as unknown as AudioContext,
+      fetchArrayBuffer: vi.fn(async () => new ArrayBuffer(8)),
+      pitchTempoMode: 'render',
+      createRenderedBuffer,
+      createPitchShiftNode: vi.fn(async () => new FakePitchShiftNode()),
+      wait: async () => {}
+    } as unknown as ConstructorParameters<typeof AudioEngine>[0]);
+
+    await engine.loadSong({
+      id: 'glorybox',
+      title: 'Glory Box',
+      stems: stemNames.map((name) => ({ name, label: name, url: `${name}.mp3` }))
+    });
+
+    await engine.setGlobalTransposeSemitones(2);
+    expect(createRenderedBuffer).toHaveBeenCalledTimes(3);
+
+    await engine.setGlobalTransposeSemitones(3);
+    expect(createRenderedBuffer).toHaveBeenCalledTimes(6); // 3 non-drum stems re-rendered
+
+    await engine.setGlobalTransposeSemitones(0);
+    expect(createRenderedBuffer).toHaveBeenCalledTimes(6); // revert reuses the original buffers
+  });
+
+  it('exposes a rendering flag while offline renders are in flight', async () => {
+    const context = new FakeAudioContext();
+    let engine!: AudioEngine;
+    let observedDuringRender = false;
+    const createRenderedBuffer = vi.fn(async (input: AudioBuffer) => {
+      observedDuringRender = engine.getSnapshot().rendering;
+      return { duration: input.duration } as AudioBuffer;
+    });
+    engine = new AudioEngine({
+      audioContext: context as unknown as AudioContext,
+      fetchArrayBuffer: vi.fn(async () => new ArrayBuffer(8)),
+      pitchTempoMode: 'render',
+      createRenderedBuffer,
+      createPitchShiftNode: vi.fn(async () => new FakePitchShiftNode()),
+      wait: async () => {}
+    } as unknown as ConstructorParameters<typeof AudioEngine>[0]);
+
+    await engine.loadSong({
+      id: 'glorybox',
+      title: 'Glory Box',
+      stems: stemNames.map((name) => ({ name, label: name, url: `${name}.mp3` }))
+    });
+    expect(engine.getSnapshot().rendering).toBe(false);
+
+    await engine.setGlobalTransposeSemitones(2);
+    expect(observedDuringRender).toBe(true);
+    expect(engine.getSnapshot().rendering).toBe(false);
+  });
+
+  it('inserts a brickwall limiter between master gain and destination when supported', () => {
+    const context = new FakeAudioContext();
+    const compressors: FakeDynamicsCompressor[] = [];
+    (context as unknown as { createDynamicsCompressor: () => FakeDynamicsCompressor }).createDynamicsCompressor =
+      () => {
+        const compressor = new FakeDynamicsCompressor();
+        compressors.push(compressor);
+        return compressor;
+      };
+
+    new AudioEngine({
+      audioContext: context as unknown as AudioContext,
+      fetchArrayBuffer: vi.fn(async () => new ArrayBuffer(8))
+    } as unknown as ConstructorParameters<typeof AudioEngine>[0]);
+
+    expect(compressors).toHaveLength(1);
+    const limiter = compressors[0];
+    expect(masterGain(context).connectedTo[0]).toBe(limiter);
+    expect(limiter.connectedTo[0]).toBe(context.destination);
+    expect(limiter.ratio.value).toBe(20);
+    expect(limiter.threshold.value).toBe(-1.5);
   });
 
   it('ignores a stale play start when stopped while the pitch worklet initializes', async () => {

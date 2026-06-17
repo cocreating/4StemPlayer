@@ -9,6 +9,7 @@
   import { shouldHandlePlaybackShortcut } from '$lib/keyboard';
   import { loadingFeedbackText } from '$lib/loadingFeedback';
   import {
+    detectLowMemoryDefault,
     readLowMemoryPreference,
     readStoredTheme,
     resolveInitialSongId,
@@ -43,7 +44,11 @@
   let appError = $state('');
   let theme = $state<ThemeMode>('light');
   let lowMemoryActive = $state(false);
+  // On phones, route transpose/tempo through offline pre-rendering instead of
+  // several live SoundTouch worklets (which underrun and desync on mobile CPUs).
+  let renderModeActive = $state(false);
   const LOW_MEMORY_DECODE_PROFILE: DecodeProfile = { mono: true, sampleRate: 22050 };
+  const MOBILE_SNAPSHOT_INTERVAL_MS = 150;
   let sectionsOpen = $state(false);
   let mixerOpen = $state(false);
   let lyricsOpen = $state(false);
@@ -51,6 +56,7 @@
   let songFeedback = $derived(loadingFeedbackText('song', selectedEntry?.title));
   let sectionMarkers = $derived(songBundle?.metadata.sections ?? []);
   let lyricsText = $derived(songBundle?.lyricsMarkdown || songBundle?.metadata.lyrics || '');
+  let applyingTransform = $derived(engineSnapshot?.rendering ?? false);
 
   function getBrowserStorage() {
     try {
@@ -123,7 +129,9 @@
     unsubscribe?.();
     engine?.destroy();
     engine = new AudioEngine({
-      decodeProfile: lowMemoryActive ? LOW_MEMORY_DECODE_PROFILE : null
+      decodeProfile: lowMemoryActive ? LOW_MEMORY_DECODE_PROFILE : null,
+      pitchTempoMode: renderModeActive ? 'render' : 'realtime',
+      driftCorrectionIntervalMs: renderModeActive ? MOBILE_SNAPSHOT_INTERVAL_MS : undefined
     });
     unsubscribe = engine.subscribe((snapshot) => {
       engineSnapshot = snapshot;
@@ -245,6 +253,7 @@
   onMount(() => {
     applyTheme(readStoredTheme(getBrowserStorage()));
     lowMemoryActive = resolveLowMemoryActive(readLowMemoryPreference(getBrowserStorage()));
+    renderModeActive = detectLowMemoryDefault();
     void boot();
     window.addEventListener('keydown', handleKeydown);
 
@@ -321,6 +330,12 @@
             onMixerToggle={toggleMixer}
             onLyricsToggle={toggleLyrics}
           />
+          {#if applyingTransform}
+            <p class="applying-indicator" role="status" aria-live="polite">
+              <span class="applying-spinner" aria-hidden="true"></span>
+              Applying key &amp; tempo…
+            </p>
+          {/if}
           <SectionsPopover
             sections={sectionMarkers}
             open={sectionsOpen}

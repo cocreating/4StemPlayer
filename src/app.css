@@ -338,6 +338,42 @@ pre {
   box-shadow: 0 0 0 3px rgb(15 118 110 / 0.18);
 }
 
+.applying-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 0.75rem;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--accent), var(--shadow);
+  color: var(--accent-strong);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.applying-spinner {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  border-radius: 999px;
+  border: 2px solid rgb(15 118 110 / 0.25);
+  border-top-color: var(--accent-strong);
+  animation: applying-spin 0.7s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .applying-spinner {
+    animation-duration: 1.6s;
+  }
+}
+
+@keyframes applying-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .song-selector label,
 .transport-seek label,
 .volume-control label {

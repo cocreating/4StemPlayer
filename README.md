@@ -102,6 +102,23 @@ This prevents a previously observed defect where transposing and then pressing P
 
 Dynamic BPM changes keep section markers, waveforms, and seeking on the original song timeline. The audio engine stores the detected metadata BPM as the source BPM and applies a global tempo ratio during playback. When the ratio is not `1`, all stems run through the same SoundTouch path used for transpose so playback speed can change while preserving pitch/key. Drums are only pitch-compensated for tempo changes; they are still excluded from transpose.
 
+## Pitch/tempo on mobile (render mode)
+
+The real-time approach above runs one SoundTouch AudioWorklet per affected stem. On a desktop CPU that is fine, but on a phone, four to six live time-stretch worklets at once overrun the audio deadline: the worklets underrun, so the audio falls behind a wall-clock playhead (it sounds like the song accelerates), dropouts crackle like clipping, and live graph swaps feel unstable.
+
+The engine therefore supports two pitch/tempo strategies, selected by the `pitchTempoMode` option:
+
+- `realtime` (default, desktop): per-stem SoundTouch worklets process audio live, so transpose/tempo changes are instant.
+- `render` (auto-enabled on phones): whenever the transpose or tempo changes, each affected stem is pre-rendered once through SoundTouch in an `OfflineAudioContext` (via the library's `processOffline`) into a plain buffer, and playback then carries **no real-time DSP** at all. This removes the underruns, so the playhead stays locked to the audio and there is no transpose crackle.
+
+Render mode keeps the original decoded buffers so every re-render starts from clean audio, and it keeps the original-timeline model: a baked-in tempo change shortens the rendered buffer, so the engine maps the playhead through the baked tempo ratio when starting and seeking. Changing the key or BPM triggers a brief offline render; the UI shows an "Applying key & tempo…" indicator while it runs, after which playback resumes glitch-free from the same position. Render mode auto-enables on the same device signals as Lite mode (coarse-pointer phone screens, data-saver, slow networks, low device memory).
+
+The mode is chosen per device automatically; desktop keeps the instant real-time path. On mobile the snapshot/meter loop is also throttled to lighten the main thread.
+
+## Output limiting
+
+The master bus runs through a `DynamicsCompressorNode` configured as a fast brickwall limiter (threshold −1.5 dB, ratio 20, knee 0) before the destination. Summing several stems — especially with time-stretch peak overshoot — can exceed 0 dBFS; the limiter catches those peaks instead of letting the device hard-clip. The per-transpose headroom gain (`0.55`–`0.7`) is retained on top of the limiter.
+
 ## Vercel deployment
 
 This project uses a static build output configured to `build/`.

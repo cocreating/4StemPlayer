@@ -48,9 +48,23 @@ export interface AudioEngineSnapshot {
   tempoRatio: number;
   playing: boolean;
   loading: boolean;
+  /** True while stems are being re-rendered offline after a transpose/tempo change. */
+  rendering: boolean;
   errors: string[];
   stems: Record<string, StemPlaybackState>;
 }
+
+export type PitchTempoMode = 'realtime' | 'render';
+
+export interface RenderTransform {
+  pitchSemitones: number;
+  playbackRate: number;
+}
+
+export type RenderedBufferFactory = (
+  input: AudioBuffer,
+  transform: RenderTransform
+) => Promise<AudioBuffer>;
 
 export interface DecodeProfile {
   /** Downmix every stem to a single channel to roughly halve decoded memory. */
@@ -82,6 +96,32 @@ interface EngineOptions {
     length: number,
     sampleRate: number
   ) => OfflineRenderContextLike;
+  /**
+   * `realtime` (default) routes transpose/tempo through per-stem SoundTouch
+   * worklets that process audio live — fine on desktop. `render` instead
+   * pre-renders each stem offline whenever the pitch/tempo changes and plays
+   * plain buffers, so playback carries no real-time DSP cost. Use `render` on
+   * phones, where running several worklets at once underruns and desyncs.
+   */
+  pitchTempoMode?: PitchTempoMode;
+  createRenderedBuffer?: RenderedBufferFactory;
+}
+
+async function defaultCreateRenderedBuffer(
+  input: AudioBuffer,
+  transform: RenderTransform
+): Promise<AudioBuffer> {
+  const [{ processOffline }, processorUrlModule] = await Promise.all([
+    import('@soundtouchjs/audio-worklet'),
+    import('@soundtouchjs/audio-worklet/processor?url')
+  ]);
+  const processorUrl = (processorUrlModule as { default: string }).default;
+  return processOffline({
+    input,
+    processorUrl,
+    pitchSemitones: transform.pitchSemitones,
+    playbackRate: transform.playbackRate
+  });
 }
 
 function defaultCreateOfflineAudioContext(
@@ -103,7 +143,12 @@ function defaultCreateOfflineAudioContext(
 }
 
 interface LoadedStem extends StemPlaybackState {
+  /** The buffer currently fed to playback (original, or an offline-rendered copy). */
   buffer: AudioBuffer | null;
+  /** The unmodified decoded buffer, kept so renders always start from clean audio. */
+  originalBuffer: AudioBuffer | null;
+  /** The pitch/tempo transform currently baked into `buffer` (null = original). */
+  renderedTransform: RenderTransform | null;
   gainNode: GainNode;
   analyserNode: AnalyserNode | null;
   meterData: Uint8Array<ArrayBuffer> | null;
@@ -210,7 +255,10 @@ export class AudioEngine {
     length: number,
     sampleRate: number
   ) => OfflineRenderContextLike;
+  private readonly pitchTempoMode: PitchTempoMode;
+  private readonly createRenderedBuffer: RenderedBufferFactory;
   private readonly masterGainNode: GainNode;
+  private readonly masterLimiterNode: DynamicsCompressorNode | null;
   private readonly listeners = new Set<(snapshot: AudioEngineSnapshot) => void>();
   private readonly stems = new Map<StemName, LoadedStem>();
   private driftTimer: ReturnType<typeof setInterval> | null = null;
@@ -227,6 +275,9 @@ export class AudioEngine {
   private starting = false;
   private playbackEpoch = 0;
   private graphMutation: Promise<void> = Promise.resolve();
+  private rendering = false;
+  /** Tempo ratio baked into the current playback buffers (render mode). */
+  private renderedTempoRatio = 1;
 
   constructor(options: EngineOptions = {}) {
     this.audioContext = options.audioContext ?? createBrowserAudioContext();
@@ -239,8 +290,30 @@ export class AudioEngine {
     this.decodeProfile = options.decodeProfile ?? null;
     this.createOfflineAudioContext =
       options.createOfflineAudioContext ?? defaultCreateOfflineAudioContext;
+    this.pitchTempoMode = options.pitchTempoMode ?? 'realtime';
+    this.createRenderedBuffer = options.createRenderedBuffer ?? defaultCreateRenderedBuffer;
     this.masterGainNode = this.audioContext.createGain();
+    this.masterLimiterNode = this.createMasterLimiter();
     this.configureMasterOutput();
+  }
+
+  private get renderMode() {
+    return this.pitchTempoMode === 'render';
+  }
+
+  private createMasterLimiter(): DynamicsCompressorNode | null {
+    if (!('createDynamicsCompressor' in this.audioContext)) {
+      return null;
+    }
+    // A fast, high-ratio compressor acts as a brickwall limiter so summed
+    // stems and time-stretch overshoot cannot hard-clip the output.
+    const limiter = this.audioContext.createDynamicsCompressor();
+    limiter.threshold.value = -1.5;
+    limiter.knee.value = 0;
+    limiter.ratio.value = 20;
+    limiter.attack.value = 0.003;
+    limiter.release.value = 0.12;
+    return limiter;
   }
 
   subscribe(listener: (snapshot: AudioEngineSnapshot) => void) {
@@ -283,6 +356,7 @@ export class AudioEngine {
       tempoRatio: this.tempoRatio,
       playing: this.playing,
       loading: this.loading,
+      rendering: this.rendering,
       errors: [...this.errors],
       stems
     };
@@ -298,7 +372,12 @@ export class AudioEngine {
 
     const loadResults = await Promise.allSettled(song.stems.map((stem) => this.loadStem(stem)));
     this.loading = false;
-    this.duration = Math.max(0, ...[...this.stems.values()].map((stem) => stem.buffer?.duration ?? 0));
+    // Duration is always the original timeline; rendered buffers may be shorter
+    // when a tempo change is baked in.
+    this.duration = Math.max(
+      0,
+      ...[...this.stems.values()].map((stem) => stem.originalBuffer?.duration ?? 0)
+    );
 
     const errors = loadResults
       .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
@@ -352,6 +431,8 @@ export class AudioEngine {
     this.stopSources();
     this.playing = false;
     this.playbackEpoch += 1;
+    // Restore master gain in case this interrupted a render/transition fade.
+    this.applyMasterGainForStoppedPlayback();
     this.stopDriftCorrection();
     this.emit();
   }
@@ -361,6 +442,7 @@ export class AudioEngine {
     this.playing = false;
     this.position = 0;
     this.playbackEpoch += 1;
+    this.applyMasterGainForStoppedPlayback();
     this.stopDriftCorrection();
     this.emit();
   }
@@ -372,6 +454,8 @@ export class AudioEngine {
       this.stopSources();
       this.startedAt = this.audioContext.currentTime;
       this.startSources(this.position);
+      // Re-assert master gain in case a transition fade was interrupted.
+      this.rampMasterGain(this.currentMasterGainTarget());
     }
     this.emit();
   }
@@ -470,6 +554,8 @@ export class AudioEngine {
     this.startedAt = 0;
     this.globalTransposeSemitones = 0;
     this.tempoRatio = 1;
+    this.renderedTempoRatio = 1;
+    this.rendering = false;
     this.masterGainNode.gain.value = masterGainForPitchSemitones(0);
     this.playing = false;
     this.loading = false;
@@ -500,7 +586,9 @@ export class AudioEngine {
       meterData,
       sourceNode: null,
       pitchNode: null,
-      buffer: null
+      buffer: null,
+      originalBuffer: null,
+      renderedTransform: null
     };
     this.stems.set(stem.name, loadedStem);
     this.emit();
@@ -508,7 +596,8 @@ export class AudioEngine {
     try {
       const audioData = await this.fetchArrayBuffer(stem.url);
       const decoded = await this.audioContext.decodeAudioData(audioData.slice(0));
-      loadedStem.buffer = await this.processDecodedBuffer(decoded);
+      loadedStem.originalBuffer = await this.processDecodedBuffer(decoded);
+      loadedStem.buffer = loadedStem.originalBuffer;
       loadedStem.loaded = true;
       loadedStem.error = null;
     } catch (error) {
@@ -559,16 +648,32 @@ export class AudioEngine {
       }
       const source = this.audioContext.createBufferSource();
       source.buffer = stem.buffer;
-      source.playbackRate.value = this.tempoRatio;
-      const destination =
-        this.stemNeedsPitchNode(stem) && stem.pitchNode ? stem.pitchNode : stem.gainNode;
-      source.connect(destination as unknown as AudioNode);
+
+      let bufferOffset: number;
+      let destination: AudioNode;
+      if (this.renderMode) {
+        // Tempo is baked into the rendered buffer, so it plays at native rate
+        // and the original-timeline playhead maps through the baked ratio.
+        source.playbackRate.value = 1;
+        const ratio = this.renderedTempoRatio || 1;
+        bufferOffset = clamp(offset / ratio, 0, stem.buffer.duration);
+        destination = stem.gainNode;
+      } else {
+        source.playbackRate.value = this.tempoRatio;
+        bufferOffset = clamp(offset, 0, stem.buffer.duration);
+        destination =
+          this.stemNeedsPitchNode(stem) && stem.pitchNode
+            ? (stem.pitchNode as unknown as AudioNode)
+            : stem.gainNode;
+      }
+
+      source.connect(destination);
       source.onended = () => {
         if (this.playing && this.getPosition() >= this.duration - 0.05) {
           this.stop();
         }
       };
-      source.start(0, clamp(offset, 0, stem.buffer.duration));
+      source.start(0, bufferOffset);
       stem.sourceNode = source;
     }
   }
@@ -663,12 +768,112 @@ export class AudioEngine {
   }
 
   private async applyPitchGraphForPlayback() {
+    if (this.renderMode) {
+      // Render mode pre-renders even while stopped so the next play is instant.
+      const renderEpoch = this.playbackEpoch;
+      await this.runExclusive(() => this.reconcileRenderedBuffers(renderEpoch));
+      return;
+    }
+
     if (!this.playing) {
       return;
     }
 
     const epoch = this.playbackEpoch;
     await this.runExclusive(() => this.reconcilePitchGraph(epoch));
+  }
+
+  private stemRenderTransform(stem: LoadedStem): RenderTransform | null {
+    const pitchSemitones = stem.pitchAdjustable ? stem.effectivePitchSemitones : 0;
+    if (pitchSemitones === 0 && this.tempoRatio === 1) {
+      return null;
+    }
+    return { pitchSemitones, playbackRate: this.tempoRatio };
+  }
+
+  private static transformsEqual(a: RenderTransform | null, b: RenderTransform | null) {
+    if (a === null || b === null) {
+      return a === b;
+    }
+    return a.pitchSemitones === b.pitchSemitones && a.playbackRate === b.playbackRate;
+  }
+
+  private async reconcileRenderedBuffers(epoch: number) {
+    if (this.playbackEpoch !== epoch) {
+      return;
+    }
+
+    this.updateEffectivePitchState();
+
+    const targets = [...this.stems.values()].map((stem) => ({
+      stem,
+      desired: this.stemRenderTransform(stem)
+    }));
+    const needsWork = targets.some(
+      ({ stem, desired }) => !AudioEngine.transformsEqual(desired, stem.renderedTransform)
+    );
+    if (!needsWork) {
+      this.renderedTempoRatio = this.tempoRatio;
+      this.applyMasterGainForStoppedPlayback();
+      return;
+    }
+
+    const wasPlaying = this.playing;
+    const resumePosition = wasPlaying ? this.getPosition() : this.position;
+
+    if (wasPlaying) {
+      await this.fadeMasterGain(0);
+      if (this.playbackEpoch !== epoch) {
+        return;
+      }
+      this.stopSources();
+    }
+
+    this.rendering = true;
+    this.emit();
+
+    try {
+      for (const { stem, desired } of targets) {
+        if (!stem.originalBuffer) {
+          continue;
+        }
+        if (AudioEngine.transformsEqual(desired, stem.renderedTransform)) {
+          continue;
+        }
+        if (!desired) {
+          stem.buffer = stem.originalBuffer;
+          stem.renderedTransform = null;
+          stem.pitchShiftError = null;
+          continue;
+        }
+        try {
+          stem.buffer = await this.createRenderedBuffer(stem.originalBuffer, desired);
+          stem.renderedTransform = desired;
+          stem.pitchShiftError = null;
+        } catch (error) {
+          stem.buffer = stem.originalBuffer;
+          stem.renderedTransform = null;
+          stem.pitchShiftError = error instanceof Error ? error.message : String(error);
+        }
+        if (this.playbackEpoch !== epoch) {
+          return;
+        }
+      }
+    } finally {
+      this.rendering = false;
+    }
+
+    this.renderedTempoRatio = this.tempoRatio;
+
+    if (wasPlaying && this.isPlaybackCurrent(epoch)) {
+      this.position = resumePosition;
+      this.startedAt = this.audioContext.currentTime;
+      this.startSources(resumePosition);
+      this.rampMasterGain(this.currentMasterGainTarget());
+    } else {
+      this.applyMasterGainForStoppedPlayback();
+    }
+    this.emit();
   }
 
   private async reconcilePitchGraph(epoch: number) {
@@ -723,6 +928,10 @@ export class AudioEngine {
   }
 
   private stemNeedsPitchNode(stem: LoadedStem) {
+    if (this.renderMode) {
+      // Pitch/tempo are baked into rendered buffers; no real-time nodes exist.
+      return false;
+    }
     return this.tempoRatio !== 1 || (stem.pitchAdjustable && stem.effectivePitchSemitones !== 0);
   }
 
@@ -739,7 +948,12 @@ export class AudioEngine {
 
   private configureMasterOutput() {
     this.masterGainNode.gain.value = masterGainForPitchSemitones(0);
-    this.masterGainNode.connect(this.audioContext.destination);
+    if (this.masterLimiterNode) {
+      this.masterGainNode.connect(this.masterLimiterNode);
+      this.masterLimiterNode.connect(this.audioContext.destination);
+    } else {
+      this.masterGainNode.connect(this.audioContext.destination);
+    }
   }
 
   private applyMasterGainForStoppedPlayback() {
