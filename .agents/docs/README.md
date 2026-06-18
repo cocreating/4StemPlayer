@@ -1,6 +1,22 @@
 # 4Stem Band Player Overview
 
-Last reviewed: 2026-05-20
+Last reviewed: 2026-06-18
+
+## Docs In This Folder
+
+All project documentation lives here under `.agents/docs/`. The root `README.md`
+is only a pointer to this folder.
+
+- `README.md` (this file): overview, project file map, common commands, constraints.
+- `player-guide.md`: player controls, Lite (low-memory) mode, mobile pitch/tempo
+  render mode, output limiting, PWA, and Vercel deployment.
+- `architecture-and-stack.md`: stack, runtime shape, state ownership, audio engine.
+- `specs.md`: product and technical specs, song data contract, file shapes.
+- `song-ingestion-workflow.md`: how to add a new song.
+- `product_features_roadmap.md`: candidate future features.
+- `svelte-5-migration-plan.md`: Svelte 5 runes migration notes.
+- `CHANGELOG.md`: notable changes, tagged with the commit shown in the in-app
+  version badge.
 
 ## What This App Does
 
@@ -40,10 +56,9 @@ Each song folder contains required and optional MP3 stems (vocals, guitar, strin
 
 Validation performed during this review:
 
-- `npm test`: 6 test files passed, 30 tests passed.
+- `npm test`: 17 test files passed, 100 tests passed.
 - `npm run check`: 0 Svelte errors, 0 warnings.
-- `npm run songs:validate`: static song folder validated successfully.
-- `npm run build`: static build completed and wrote the site to `build/`.
+- `npm run build`: static build completed and wrote the site to `build/`/`public/`.
 
 ## Main Project Files
 
@@ -97,7 +112,7 @@ Notes:
 ## Known Constraints
 
 - The required stems are `bass`, `drums`, and `vocals`. Additional stems are optional and loaded dynamically if present.
-- Each stem is fully fetched and decoded into an `AudioBuffer`, so very large catalogs or long stems may create memory pressure.
+- Each stem is fully fetched and decoded into an `AudioBuffer`, so very large catalogs or long stems may create memory pressure. The Lite (low-memory) decode mode mono/downsamples stems on phones to mitigate this; see `player-guide.md`.
 - Playback depends on browser Web Audio API support and user-gesture audio resume behavior.
 - There is no song upload/import UI. New songs are added by placing files in `static/songs/<Folder>/` and regenerating the manifest.
 - There are unit tests for the audio engine, song scripts, metadata formatting, and keyboard shortcut guard, but no browser end-to-end test suite in the repo.
