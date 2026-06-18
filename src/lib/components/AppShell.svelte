@@ -1,11 +1,13 @@
 <script lang="ts">
   import { onDestroy, onMount, tick } from 'svelte';
+  import { dev } from '$app/environment';
   import {
     AudioEngine,
     type AudioEngineSnapshot,
     type DecodeProfile,
     type StemName
   } from '$lib/audio/AudioEngine';
+  import { buildMediaMetadataInit, mediaPositionState } from '$lib/pwa';
   import { shouldHandlePlaybackShortcut } from '$lib/keyboard';
   import { loadingFeedbackText } from '$lib/loadingFeedback';
   import {
@@ -291,21 +293,143 @@
     togglePlayback();
   }
 
+  function registerServiceWorker() {
+    if (dev || typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
+      return;
+    }
+    navigator.serviceWorker.register('/service-worker.js').catch(() => {
+      // Service worker is a progressive enhancement; ignore registration errors.
+    });
+  }
+
+  // --- Screen Wake Lock: keep the phone awake while a song is playing. ---
+  let wakeLock: WakeLockSentinel | null = null;
+
+  async function acquireWakeLock() {
+    if (typeof navigator === 'undefined' || !('wakeLock' in navigator) || wakeLock) {
+      return;
+    }
+    try {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => {
+        wakeLock = null;
+      });
+    } catch {
+      wakeLock = null;
+    }
+  }
+
+  async function releaseWakeLock() {
+    const current = wakeLock;
+    wakeLock = null;
+    try {
+      await current?.release();
+    } catch {
+      // Ignore release errors (already released / unsupported).
+    }
+  }
+
+  function handleVisibilityChange() {
+    if (document.visibilityState === 'visible' && engineSnapshot?.playing) {
+      void acquireWakeLock();
+    }
+  }
+
+  // --- Media Session: lock-screen / Bluetooth / headset transport controls. ---
+  function getMediaSession(): MediaSession | null {
+    if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) {
+      return null;
+    }
+    return navigator.mediaSession;
+  }
+
+  function setupMediaSessionHandlers() {
+    const session = getMediaSession();
+    if (!session) {
+      return;
+    }
+    session.setActionHandler('play', () => play());
+    session.setActionHandler('pause', () => pause());
+    session.setActionHandler('stop', () => stop());
+    session.setActionHandler('seekbackward', (details) => {
+      const offset = details.seekOffset ?? 10;
+      seek(Math.max(0, (engineSnapshot?.position ?? 0) - offset));
+    });
+    session.setActionHandler('seekforward', (details) => {
+      const offset = details.seekOffset ?? 10;
+      const duration = engineSnapshot?.duration ?? 0;
+      seek(Math.min(duration, (engineSnapshot?.position ?? 0) + offset));
+    });
+    try {
+      session.setActionHandler('seekto', (details) => {
+        if (typeof details.seekTime === 'number') {
+          seek(details.seekTime);
+        }
+      });
+    } catch {
+      // 'seekto' is not supported everywhere.
+    }
+  }
+
+  // Update metadata when the song changes.
+  $effect(() => {
+    const session = getMediaSession();
+    const entry = selectedEntry;
+    if (!session || !entry) {
+      return;
+    }
+    try {
+      session.metadata = new MediaMetadata(
+        buildMediaMetadataInit(songBundle?.metadata.title ?? entry.title, entry.artist)
+      );
+    } catch {
+      // MediaMetadata may be unavailable; ignore.
+    }
+  });
+
+  // Reflect playback state, position, and wake lock from the engine snapshot.
+  $effect(() => {
+    const snapshot = engineSnapshot;
+    const session = getMediaSession();
+    if (session) {
+      session.playbackState = snapshot?.playing ? 'playing' : 'paused';
+      const positionState = mediaPositionState(snapshot?.duration ?? 0, snapshot?.position ?? 0);
+      if (positionState) {
+        try {
+          session.setPositionState(positionState);
+        } catch {
+          // Ignore invalid position-state updates.
+        }
+      }
+    }
+
+    if (snapshot?.playing) {
+      void acquireWakeLock();
+    } else {
+      void releaseWakeLock();
+    }
+  });
+
   onMount(() => {
     applyTheme(readStoredTheme(getBrowserStorage()));
     lowMemoryActive = resolveLowMemoryActive(readLowMemoryPreference(getBrowserStorage()));
     renderModeActive = detectLowMemoryDefault();
+    registerServiceWorker();
+    setupMediaSessionHandlers();
     void boot();
     window.addEventListener('keydown', handleKeydown);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       window.removeEventListener('keydown', handleKeydown);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   });
 
   onDestroy(() => {
     unsubscribe?.();
     engine?.destroy();
+    void releaseWakeLock();
   });
 </script>
 

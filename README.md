@@ -121,6 +121,12 @@ Because the offline render is not CPU-bound, it uses the engine's highest-qualit
 
 The master bus runs through a `DynamicsCompressorNode` configured as a fast brickwall limiter (threshold −1.5 dB, ratio 20, knee 0) before the destination. Summing several stems — especially with time-stretch peak overshoot — can exceed 0 dBFS; the limiter catches those peaks instead of letting the device hard-clip. The per-transpose headroom gain (`0.55`–`0.7`) is retained on top of the limiter.
 
+## Installable app (PWA)
+
+The player ships a web app manifest (`static/manifest.webmanifest`) with maskable icons, so it can be installed to a phone home screen and launched standalone (no browser chrome). `src/service-worker.ts` precaches the built app shell and all static assets on install, and runtime-caches `/songs/*` cache-first, so a song that has been played once stays available offline. The worker is registered from the app shell in production only.
+
+While a song is loaded, the app publishes Media Session metadata and transport handlers, so the lock screen, Bluetooth headset, and car controls can play/pause/stop and seek, and show the current title/artist and artwork. Playback also holds a screen Wake Lock so the phone does not sleep mid-song; the lock is re-acquired when the tab returns to the foreground and released when playback stops.
+
 ## Vercel deployment
 
 This project uses a static build output configured to `build/`.
