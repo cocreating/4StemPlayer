@@ -41,6 +41,14 @@ shows the deployed commit so you can match what you're testing to an entry here.
 - **Lighter mobile main thread** (`56ea395`): the snapshot/meter loop is
   throttled on phones.
 
+### Changed
+- **Much faster transpose render on mobile**: the offline render now runs stems
+  concurrently (capped to bound memory) instead of sequentially, and uses the
+  fast WSOLA search for small transposes (±2 semitones, ~1.8x faster) while
+  keeping the full search for larger shifts. A `Applying transpose… N/M`
+  progress count shows while it runs. This addresses a ~2–3 minute wait when
+  transposing a six-stem song.
+
 ### Removed
 - **Per-stem transpose and the BPM/tempo UI**: transpose is now global-only
   (every non-drum stem moves together), and the BPM controls were dropped, to

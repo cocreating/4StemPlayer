@@ -49,6 +49,8 @@ export interface AudioEngineSnapshot {
   loading: boolean;
   /** True while stems are being re-rendered offline after a transpose/tempo change. */
   rendering: boolean;
+  /** Progress of the in-flight offline render (`done` of `total` stems). */
+  renderProgress: { done: number; total: number };
   errors: string[];
   stems: Record<string, StemPlaybackState>;
 }
@@ -115,17 +117,17 @@ async function defaultCreateRenderedBuffer(
     import('@soundtouchjs/audio-worklet/processor?url')
   ]);
   const processorUrl = (processorUrlModule as { default: string }).default;
+  // The non-quick WSOLA search is ~1.8x slower. Its quality benefit only shows
+  // on large pitch shifts, so reserve it for those and use the fast search for
+  // small transposes (and the pitch-0 drums pass) to keep rendering quick.
+  const gentle = transform.playbackRate === 1 && Math.abs(transform.pitchSemitones) <= 2;
   return processOffline({
     input,
     processorUrl,
     pitchSemitones: transform.pitchSemitones,
     playbackRate: transform.playbackRate,
-    // Offline rendering is not CPU-bound, so use the highest-quality settings:
-    // lanczos resampling plus full (non-quick) WSOLA seeking with a wider
-    // overlap. quickSeek (the default) is what makes harmonic stems such as
-    // bass sound detuned/dissonant after a transpose.
     interpolationStrategy: 'lanczos',
-    stretchParameters: { quickSeek: false, overlapMs: 12 }
+    stretchParameters: { quickSeek: gentle, overlapMs: gentle ? 8 : 12 }
   });
 }
 
@@ -174,6 +176,9 @@ const DEFAULT_DRIFT_INTERVAL_MS = 80;
 const LIVE_GRAPH_TRANSITION_SECONDS = 0.03;
 const MIN_TEMPO_RATIO = 0.5;
 const MAX_TEMPO_RATIO = 1.5;
+// How many stems to render offline at once. Caps peak memory while still
+// overlapping the per-stem offline passes.
+const RENDER_CONCURRENCY = 3;
 const pitchShiftRegistration = new WeakMap<BaseAudioContext, Promise<void>>();
 
 function createEmptyStem(name: StemName): StemPlaybackState {
@@ -280,6 +285,7 @@ export class AudioEngine {
   private playbackEpoch = 0;
   private graphMutation: Promise<void> = Promise.resolve();
   private rendering = false;
+  private renderProgress = { done: 0, total: 0 };
   /** Tempo ratio baked into the current playback buffers (render mode). */
   private renderedTempoRatio = 1;
 
@@ -360,6 +366,7 @@ export class AudioEngine {
       playing: this.playing,
       loading: this.loading,
       rendering: this.rendering,
+      renderProgress: { ...this.renderProgress },
       errors: [...this.errors],
       stems
     };
@@ -537,6 +544,7 @@ export class AudioEngine {
     this.tempoRatio = 1;
     this.renderedTempoRatio = 1;
     this.rendering = false;
+    this.renderProgress = { done: 0, total: 0 };
     this.masterGainNode.gain.value = masterGainForPitchSemitones(0);
     this.playing = false;
     this.loading = false;
@@ -817,38 +825,44 @@ export class AudioEngine {
       this.stopSources();
     }
 
+    const pending = targets.filter(
+      ({ stem, desired }) =>
+        stem.originalBuffer && !AudioEngine.transformsEqual(desired, stem.renderedTransform)
+    );
+
     this.rendering = true;
+    this.renderProgress = { done: 0, total: pending.length };
     this.emit();
 
     try {
-      for (const { stem, desired } of targets) {
-        if (!stem.originalBuffer) {
-          continue;
-        }
-        if (AudioEngine.transformsEqual(desired, stem.renderedTransform)) {
-          continue;
-        }
+      // Render stems concurrently (capped) so a six-stem song does not wait
+      // through six sequential offline passes. The cap bounds peak memory.
+      await this.mapWithConcurrency(pending, RENDER_CONCURRENCY, async ({ stem, desired }) => {
         if (!desired) {
           stem.buffer = stem.originalBuffer;
           stem.renderedTransform = null;
           stem.pitchShiftError = null;
-          continue;
+        } else {
+          try {
+            stem.buffer = await this.createRenderedBuffer(stem.originalBuffer!, desired);
+            stem.renderedTransform = desired;
+            stem.pitchShiftError = null;
+          } catch (error) {
+            stem.buffer = stem.originalBuffer;
+            stem.renderedTransform = null;
+            stem.pitchShiftError = error instanceof Error ? error.message : String(error);
+          }
         }
-        try {
-          stem.buffer = await this.createRenderedBuffer(stem.originalBuffer, desired);
-          stem.renderedTransform = desired;
-          stem.pitchShiftError = null;
-        } catch (error) {
-          stem.buffer = stem.originalBuffer;
-          stem.renderedTransform = null;
-          stem.pitchShiftError = error instanceof Error ? error.message : String(error);
-        }
-        if (this.playbackEpoch !== epoch) {
-          return;
-        }
-      }
+        this.renderProgress = { done: this.renderProgress.done + 1, total: pending.length };
+        this.emit();
+      });
     } finally {
       this.rendering = false;
+      this.renderProgress = { done: 0, total: 0 };
+    }
+
+    if (this.playbackEpoch !== epoch) {
+      return;
     }
 
     this.renderedTempoRatio = this.tempoRatio;
@@ -904,6 +918,21 @@ export class AudioEngine {
 
   private isPlaybackCurrent(epoch: number) {
     return this.playing && this.playbackEpoch === epoch;
+  }
+
+  private async mapWithConcurrency<T>(
+    items: readonly T[],
+    limit: number,
+    task: (item: T) => Promise<void>
+  ): Promise<void> {
+    const queue = [...items];
+    const runWorker = async () => {
+      for (let item = queue.shift(); item !== undefined; item = queue.shift()) {
+        await task(item);
+      }
+    };
+    const workerCount = Math.max(1, Math.min(limit, queue.length));
+    await Promise.all(Array.from({ length: workerCount }, runWorker));
   }
 
   private runExclusive<T>(task: () => Promise<T>): Promise<T> {

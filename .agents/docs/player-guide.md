@@ -115,7 +115,7 @@ Render mode keeps the original decoded buffers so every re-render starts from cl
 
 The mode is chosen per device automatically; desktop keeps the instant real-time path. On mobile the snapshot/meter loop is also throttled to lighten the main thread.
 
-Because the offline render is not CPU-bound, it uses the engine's highest-quality settings: `lanczos` resampling and full (non-`quickSeek`) WSOLA time-stretch with a wider overlap. SoundTouch's default `quickSeek` is what makes harmonic stems such as bass sound detuned/dissonant after a transpose, so it is disabled for the render. The real-time desktop path keeps the lighter defaults to stay responsive.
+The render uses `lanczos` resampling throughout. For the WSOLA time-stretch it adapts to the transpose size: small shifts (±2 semitones or less, plus the pitch-0 drums pass) use the fast `quickSeek` search, while larger shifts use the slower full search — `quickSeek` only audibly degrades bigger shifts, and it is roughly 1.8x faster. Stems are rendered concurrently (capped to bound memory) rather than one after another, so a six-stem song no longer waits through six sequential passes. The transport shows `Applying transpose… N/M` progress while the renders run.
 
 ## Output limiting
 

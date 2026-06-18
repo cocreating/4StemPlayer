@@ -58,6 +58,11 @@
   let sectionMarkers = $derived(songBundle?.metadata.sections ?? []);
   let lyricsText = $derived(songBundle?.lyricsMarkdown || songBundle?.metadata.lyrics || '');
   let applyingTransform = $derived(engineSnapshot?.rendering ?? false);
+  let applyingLabel = $derived(
+    (engineSnapshot?.renderProgress.total ?? 0) > 1
+      ? `Applying transpose… ${engineSnapshot?.renderProgress.done}/${engineSnapshot?.renderProgress.total}`
+      : 'Applying transpose…'
+  );
   const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev';
 
   function isMobileViewport() {
@@ -484,7 +489,7 @@
           {#if applyingTransform}
             <p class="applying-indicator" role="status" aria-live="polite">
               <span class="applying-spinner" aria-hidden="true"></span>
-              Applying transpose…
+              {applyingLabel}
             </p>
           {/if}
           <SectionsPopover
