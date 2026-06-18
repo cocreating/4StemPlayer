@@ -436,11 +436,12 @@
 <main class="app-shell" class:app-reconfiguring={applyingTransform}>
   <header class="app-header" aria-labelledby="app-title">
     <div>
-      <p class="app-version" title="Build version">{appVersion}</p>
       <p class="eyebrow">🐧PENGUINS🌈</p>
       <h1 id="app-title">4Stem Band Player</h1>
     </div>
-    <div class="app-header-actions">
+    <div class="app-header-side">
+      <p class="app-version" title="Build version">{appVersion}</p>
+      <div class="app-header-actions">
       <div class="app-header-toggles">
         <ThemeToggle {theme} toggle={toggleTheme} />
         <LowMemoryToggle active={lowMemoryActive} toggle={toggleLowMemory} />
@@ -451,6 +452,7 @@
         loading={manifestLoading || songLoading}
         onSelect={selectSong}
       />
+      </div>
     </div>
   </header>
 
