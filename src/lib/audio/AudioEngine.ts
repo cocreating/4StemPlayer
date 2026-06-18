@@ -791,11 +791,28 @@ export class AudioEngine {
     await this.runExclusive(() => this.reconcilePitchGraph(epoch));
   }
 
+  private anyTransformActive(): boolean {
+    if (this.tempoRatio !== 1) {
+      return true;
+    }
+    for (const stem of this.stems.values()) {
+      if (stem.pitchAdjustable && stem.effectivePitchSemitones !== 0) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private stemRenderTransform(stem: LoadedStem): RenderTransform | null {
-    const pitchSemitones = stem.pitchAdjustable ? stem.effectivePitchSemitones : 0;
-    if (pitchSemitones === 0 && this.tempoRatio === 1) {
+    // When any stem is transposed/time-stretched, route EVERY stem (including
+    // drums, at pitch 0) through the same offline SoundTouch pass. The processor
+    // adds a small constant time offset to whatever it touches; rendering all
+    // stems keeps them on the identical path so they stay phase-locked, instead
+    // of leaving drums un-processed and a few–tens of ms ahead of the rest.
+    if (!this.anyTransformActive()) {
       return null;
     }
+    const pitchSemitones = stem.pitchAdjustable ? stem.effectivePitchSemitones : 0;
     return { pitchSemitones, playbackRate: this.tempoRatio };
   }
 

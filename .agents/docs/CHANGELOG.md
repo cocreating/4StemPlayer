@@ -42,6 +42,11 @@ shows the deployed commit so you can match what you're testing to an entry here.
   throttled on phones.
 
 ### Fixed
+- **Inter-track sync on mobile transpose**: SoundTouch adds a small,
+  pitch-dependent constant time offset to processed audio, so the un-processed
+  drums sat a few-to-tens of milliseconds ahead of the pitched stems. Render
+  mode now routes every stem (drums at pitch 0) through the same offline pass
+  while any transform is active, keeping the stems phase-locked.
 - **Transpose then play/stop runaway** (`d5c6a03`): guarded the async pitch-graph
   transitions with a playback epoch + serialization so a superseded change can
   no longer leave orphaned/duplicate sources running against a stale playhead

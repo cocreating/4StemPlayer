@@ -676,10 +676,13 @@ describe('AudioEngine', () => {
     await engine.setGlobalTransposeSemitones(2);
     await engine.play();
 
-    // vocals, bass, other render at +2; drums are excluded; no worklet is created.
+    // Every stem renders so they share the same processing offset and stay in
+    // sync: vocals/bass/other at +2, drums at pitch 0. No real-time worklet.
     expect(createPitchShiftNode).not.toHaveBeenCalled();
-    expect(createRenderedBuffer).toHaveBeenCalledTimes(3);
-    expect(renderCalls.every((call) => call.pitchSemitones === 2 && call.playbackRate === 1)).toBe(true);
+    expect(createRenderedBuffer).toHaveBeenCalledTimes(4);
+    expect(renderCalls.every((call) => call.playbackRate === 1)).toBe(true);
+    expect(renderCalls.filter((call) => call.pitchSemitones === 2)).toHaveLength(3);
+    expect(renderCalls.filter((call) => call.pitchSemitones === 0)).toHaveLength(1);
     // Rendered buffers play at native rate (tempo/pitch already baked in).
     expect(context.sources.every((source) => source.playbackRate.value === 1)).toBe(true);
   });
@@ -745,13 +748,14 @@ describe('AudioEngine', () => {
     });
 
     await engine.setGlobalTransposeSemitones(2);
-    expect(createRenderedBuffer).toHaveBeenCalledTimes(3);
+    expect(createRenderedBuffer).toHaveBeenCalledTimes(4); // all 4 stems (drums at pitch 0)
 
     await engine.setGlobalTransposeSemitones(3);
-    expect(createRenderedBuffer).toHaveBeenCalledTimes(6); // 3 non-drum stems re-rendered
+    // Only the 3 non-drum stems change pitch; the drums' pitch-0 render is reused.
+    expect(createRenderedBuffer).toHaveBeenCalledTimes(7);
 
     await engine.setGlobalTransposeSemitones(0);
-    expect(createRenderedBuffer).toHaveBeenCalledTimes(6); // revert reuses the original buffers
+    expect(createRenderedBuffer).toHaveBeenCalledTimes(7); // revert reuses the original buffers
   });
 
   it('exposes a rendering flag while offline renders are in flight', async () => {
