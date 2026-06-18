@@ -15,16 +15,12 @@ export function isPitchAdjustableStem(stemName: StemName) {
   return stemName !== 'drums';
 }
 
-export function effectiveStemPitchSemitones(
-  stemName: StemName,
-  globalTransposeSemitones: number,
-  stemCorrectionSemitones: number
-) {
+export function effectiveStemPitchSemitones(stemName: StemName, globalTransposeSemitones: number) {
   if (!isPitchAdjustableStem(stemName)) {
     return 0;
   }
 
-  return clampPitchSemitones(globalTransposeSemitones + stemCorrectionSemitones);
+  return clampPitchSemitones(globalTransposeSemitones);
 }
 
 export function formatPitchSemitones(value: number) {

@@ -16,14 +16,14 @@ describe('pitch policy', () => {
     expect(clampPitchSemitones(3)).toBe(3);
   });
 
-  it('combines global transpose and per-stem correction for harmonic stems', () => {
-    expect(effectiveStemPitchSemitones('vocals', 2, -1)).toBe(1);
-    expect(effectiveStemPitchSemitones('guitar', -2, 5)).toBe(3);
+  it('applies the global transpose to harmonic stems', () => {
+    expect(effectiveStemPitchSemitones('vocals', 2)).toBe(2);
+    expect(effectiveStemPitchSemitones('guitar', -3)).toBe(-3);
   });
 
-  it('keeps drums at original pitch even when global transpose or correction is set', () => {
+  it('keeps drums at original pitch even when global transpose is set', () => {
     expect(isPitchAdjustableStem('drums')).toBe(false);
-    expect(effectiveStemPitchSemitones('drums', 7, -4)).toBe(0);
+    expect(effectiveStemPitchSemitones('drums', 7)).toBe(0);
   });
 
   it('formats semitone values for compact controls', () => {

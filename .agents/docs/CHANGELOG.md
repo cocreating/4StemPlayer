@@ -41,6 +41,13 @@ shows the deployed commit so you can match what you're testing to an entry here.
 - **Lighter mobile main thread** (`56ea395`): the snapshot/meter loop is
   throttled on phones.
 
+### Removed
+- **Per-stem transpose and the BPM/tempo UI**: transpose is now global-only
+  (every non-drum stem moves together), and the BPM controls were dropped, to
+  keep the player lean and guarantee that all pitched stems share the same
+  processing offset (tighter sync). The engine retains tempo internally but it
+  is no longer exposed in the UI.
+
 ### Fixed
 - **Inter-track sync on mobile transpose**: SoundTouch adds a small,
   pitch-dependent constant time offset to processed audio, so the un-processed

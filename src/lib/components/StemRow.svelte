@@ -1,6 +1,5 @@
 <script lang="ts">
   import type { StemPlaybackState } from '$lib/audio/AudioEngine';
-  import { formatPitchSemitones } from '$lib/audio/pitch';
   import { shouldToggleStemDisclosureFromClick, stemDisclosureLabel } from '$lib/stemDisclosure';
   import WaveformView from './WaveformView.svelte';
 
@@ -13,7 +12,6 @@
     onMute?: (muted: boolean) => void;
     onSolo?: (solo: boolean) => void;
     onVolume?: (volume: number) => void;
-    onPitchCorrection?: (delta: number) => void;
     onSeek?: (time: number) => void;
   };
 
@@ -26,7 +24,6 @@
     onMute = () => {},
     onSolo = () => {},
     onVolume = () => {},
-    onPitchCorrection = () => {},
     onSeek = () => {}
   }: Props = $props();
 
@@ -34,8 +31,6 @@
   let expanded = $state(false);
   let disclosureLabel = $derived(stemDisclosureLabel(stem.label, expanded));
   let detailsId = $derived(`${stem.name}-details`);
-  let pitchCorrectionLabel = $derived(formatPitchSemitones(stem.pitchCorrectionSemitones));
-  let stemTransposeLabel = $derived(formatPitchSemitones(stem.effectivePitchSemitones));
 
   function handleVolumeInput(event: Event) {
     onVolume(Number((event.currentTarget as HTMLInputElement).value));
@@ -137,32 +132,6 @@
         oninput={handleVolumeInput}
       />
       <output for={volumeId}>{Math.round(stem.volume * 100)}%</output>
-    </div>
-
-    <div class="stem-pitch-control" aria-label={`${stem.label} transpose`}>
-      {#if stem.pitchAdjustable}
-        <button
-          type="button"
-          disabled={disabled || !stem.loaded}
-          aria-label={`Lower ${stem.label} transpose one semitone`}
-          onclick={() => onPitchCorrection(-1)}
-        >
-          -
-        </button>
-        <button
-          type="button"
-          disabled={disabled || !stem.loaded}
-          aria-label={`Raise ${stem.label} transpose one semitone`}
-          onclick={() => onPitchCorrection(1)}
-        >
-          +
-        </button>
-        <output aria-label={`${stem.label} transpose`} title={`Individual offset ${pitchCorrectionLabel}`}>
-          {stemTransposeLabel}
-        </output>
-      {:else}
-        <span class="stem-pitch-locked">Pitch locked</span>
-      {/if}
     </div>
   </div>
 

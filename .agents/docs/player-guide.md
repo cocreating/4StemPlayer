@@ -74,13 +74,11 @@ The transport panel displays the currently selected song title above two rows of
 
 The Mixer button opens a compact floating mixer panel with a minimal DJ-style layout. Each stem gets a vertical volume fader, Mute and Solo buttons, a percentage readout, and live segmented LED meters driven by per-stem Web Audio analyser levels. Mixer controls stay synchronized with the matching full stem row: changing volume, mute, or solo in either place updates the same stem state.
 
-On portrait phone screens, the mixer switches to tighter channel strips so all available stems fit inside the floating panel without horizontal scrolling. The full stem mixer remains visible below the transport area for waveform, mute, solo, volume, and pitch controls.
+On portrait phone screens, the mixer switches to tighter channel strips so all available stems fit inside the floating panel without horizontal scrolling. The full stem mixer remains visible below the transport area for waveform, mute, solo, and volume controls.
 
 Each stem row starts collapsed. Use the right-aligned switch in the stem controls to expand or collapse the waveform and volume controls for that stem.
 
-Use the BPM controls below the transport readouts to adjust the target playback BPM. The current target BPM is displayed between decrement (`-`) and increment (`+`) buttons, and the `Reset BPM` button returns the playback to the original source tempo.
-
-Use the global transpose buttons below the BPM controls to shift non-drum stems up or down by a semitone. The current transpose amount is displayed between decrement (`-`) and increment (`+`) buttons, and the `Reset transpose` button resets the transpose back to 0. Changing the global transpose realigns every non-drum stem to that new value. Each non-drum stem row can then be expanded and transposed individually after its volume control. Drum stems stay at original pitch and do not receive global transpose or individual pitch correction.
+Use the global transpose buttons below the transport readouts to shift all non-drum stems up or down by a semitone. The current transpose amount is displayed between decrement (`-`) and increment (`+`) buttons, and the `Reset transpose` button resets the transpose back to 0. Transpose is global only — every non-drum stem moves together by the same amount, and drum stems stay at original pitch. (Per-stem transpose and the BPM/tempo controls were removed to keep the player lean; the engine still has the tempo capability internally but it is no longer exposed in the UI.)
 
 Loading states use an indeterminate progress bar and skeleton placeholders while the song library, metadata, lyrics, stems, and waveforms are being prepared.
 

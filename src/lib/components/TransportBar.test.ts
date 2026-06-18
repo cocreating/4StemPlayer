@@ -45,25 +45,20 @@ describe('TransportBar', () => {
     const actionsIndex = transportBarSource.indexOf('class="transport-actions"');
     const seekIndex = transportBarSource.indexOf('class="transport-seek"');
     const readoutsIndex = transportBarSource.indexOf('class="transport-readouts"');
-    const bpmIndex = transportBarSource.indexOf('class="bpm-control"');
     const transposeIndex = transportBarSource.indexOf('class="transpose-control"');
 
     expect(actionsIndex).toBeGreaterThanOrEqual(0);
     expect(seekIndex).toBeGreaterThan(actionsIndex);
     expect(readoutsIndex).toBeGreaterThan(seekIndex);
     expect(transposeIndex).toBeGreaterThan(readoutsIndex);
-    expect(bpmIndex).toBeGreaterThan(transposeIndex);
   });
 
-  it('wires target BPM controls to tempo callbacks', () => {
-    expect(transportBarSource).toContain('sourceBpm?: number');
-    expect(transportBarSource).toContain('tempoRatio?: number');
-    expect(transportBarSource).toContain('onTempoRatio?: (ratio: number) => void');
-    expect(transportBarSource).toContain('onTempoReset?: () => void');
-    expect(transportBarSource).toContain('onclick={() => changeTargetBpm(-1)}');
-    expect(transportBarSource).toContain('onclick={() => changeTargetBpm(1)}');
-    expect(transportBarSource).toContain('onclick={onTempoReset}');
-    expect(transportBarSource).toContain('aria-label="Current BPM"');
+  it('no longer exposes any BPM / tempo controls', () => {
+    expect(transportBarSource).not.toContain('bpm-control');
+    expect(transportBarSource).not.toContain('Current BPM');
+    expect(transportBarSource).not.toContain('onTempoRatio');
+    expect(transportBarSource).not.toContain('onTempoReset');
+    expect(transportBarSource).not.toContain('sourceBpm');
   });
 
   it('places global transpose output between decrement and increment buttons', () => {
@@ -71,18 +66,6 @@ describe('TransportBar', () => {
     const outputIndex = transportBarSource.indexOf('aria-label="Global transpose"');
     const raiseIndex = transportBarSource.indexOf('aria-label="Transpose up one semitone"');
     const resetIndex = transportBarSource.indexOf('aria-label="Reset global transpose"');
-
-    expect(lowerIndex).toBeGreaterThanOrEqual(0);
-    expect(outputIndex).toBeGreaterThan(lowerIndex);
-    expect(raiseIndex).toBeGreaterThan(outputIndex);
-    expect(resetIndex).toBeGreaterThan(raiseIndex);
-  });
-
-  it('places current BPM output between decrement and increment buttons', () => {
-    const lowerIndex = transportBarSource.indexOf('aria-label="Decrease target BPM"');
-    const outputIndex = transportBarSource.indexOf('aria-label="Current BPM"');
-    const raiseIndex = transportBarSource.indexOf('aria-label="Increase target BPM"');
-    const resetIndex = transportBarSource.indexOf('aria-label="Reset target BPM"');
 
     expect(lowerIndex).toBeGreaterThanOrEqual(0);
     expect(outputIndex).toBeGreaterThan(lowerIndex);

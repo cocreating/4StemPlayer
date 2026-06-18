@@ -4,8 +4,7 @@
   import {
     AudioEngine,
     type AudioEngineSnapshot,
-    type DecodeProfile,
-    type StemName
+    type DecodeProfile
   } from '$lib/audio/AudioEngine';
   import { buildMediaMetadataInit, mediaPositionState } from '$lib/pwa';
   import { shouldHandlePlaybackShortcut } from '$lib/keyboard';
@@ -197,24 +196,12 @@
     engine?.seek(time);
   }
 
-  function setTempoRatio(ratio: number) {
-    void engine?.setTempoRatio(ratio);
-  }
-
-  function resetTempoRatio() {
-    void engine?.resetTempoRatio();
-  }
-
   function transpose(delta: number) {
     void engine?.adjustGlobalTransposeSemitones(delta);
   }
 
   function resetTranspose() {
     void engine?.setGlobalTransposeSemitones(0);
-  }
-
-  function correctStemPitch(name: StemName, delta: number) {
-    void engine?.adjustStemPitchCorrection(name, delta);
   }
 
   function toggleSections() {
@@ -477,8 +464,6 @@
             position={engineSnapshot?.position ?? 0}
             duration={engineSnapshot?.duration ?? 0}
             transposeSemitones={engineSnapshot?.globalTransposeSemitones ?? 0}
-            sourceBpm={songBundle?.metadata.bpm ?? selectedEntry?.bpm ?? 0}
-            tempoRatio={engineSnapshot?.tempoRatio ?? 1}
             sectionsOpen={sectionsOpen}
             mixerOpen={mixerOpen}
             lyricsOpen={lyricsOpen}
@@ -490,8 +475,6 @@
             onPause={pause}
             onStop={stop}
             onSeek={seek}
-            onTempoRatio={setTempoRatio}
-            onTempoReset={resetTempoRatio}
             onTranspose={transpose}
             onTransposeReset={resetTranspose}
             onSectionsToggle={toggleSections}
@@ -501,7 +484,7 @@
           {#if applyingTransform}
             <p class="applying-indicator" role="status" aria-live="polite">
               <span class="applying-spinner" aria-hidden="true"></span>
-              Applying key &amp; tempo…
+              Applying transpose…
             </p>
           {/if}
           <SectionsPopover
@@ -535,7 +518,6 @@
             onMute={(name, muted) => engine?.setMuted(name, muted)}
             onSolo={(name, solo) => engine?.setSolo(name, solo)}
             onVolume={(name, volume) => engine?.setVolume(name, volume)}
-            onPitchCorrection={correctStemPitch}
             onSeek={seek}
           />
         {/if}
@@ -552,8 +534,8 @@
   {/if}
 
   {#if applyingTransform}
-    <div class="reconfig-overlay" role="status" aria-live="polite" aria-label="Applying key and tempo">
-      <span class="visually-hidden">Applying key &amp; tempo…</span>
+    <div class="reconfig-overlay" role="status" aria-live="polite" aria-label="Applying transpose">
+      <span class="visually-hidden">Applying transpose…</span>
     </div>
   {/if}
 </main>

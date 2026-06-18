@@ -231,8 +231,7 @@ describe('AudioEngine', () => {
     await engine.setGlobalTransposeSemitones(-2);
     expect(masterGain(context).gain.value).toBe(0.7);
 
-    await engine.setGlobalTransposeSemitones(2);
-    await engine.setStemPitchCorrection('bass', 1);
+    await engine.setGlobalTransposeSemitones(3);
     expect(masterGain(context).gain.value).toBe(0.55);
   });
 
@@ -380,7 +379,7 @@ describe('AudioEngine', () => {
     expect(otherGain.gain.events.at(-1)).toMatchObject({ type: 'ramp', value: 0 });
   });
 
-  it('combines global transpose with per-stem correction but keeps drums at original pitch', async () => {
+  it('applies the global transpose to every non-drum stem and keeps drums at original pitch', async () => {
     const { engine } = makeEngineWithPitchShift();
     await engine.loadSong({
       id: 'glorybox',
@@ -389,65 +388,20 @@ describe('AudioEngine', () => {
     });
 
     await engine.setGlobalTransposeSemitones(2);
-    await engine.setStemPitchCorrection('bass', -1);
-    await engine.setStemPitchCorrection('drums', 5);
 
-    const snapshot = engine.getSnapshot();
+    let snapshot = engine.getSnapshot();
     expect(snapshot.globalTransposeSemitones).toBe(2);
-    expect(snapshot.stems.vocals).toMatchObject({
-      pitchAdjustable: true,
-      pitchCorrectionSemitones: 0,
-      effectivePitchSemitones: 2
-    });
-    expect(snapshot.stems.bass).toMatchObject({
-      pitchAdjustable: true,
-      pitchCorrectionSemitones: -1,
-      effectivePitchSemitones: 1
-    });
-    expect(snapshot.stems.drums).toMatchObject({
-      pitchAdjustable: false,
-      pitchCorrectionSemitones: 0,
-      effectivePitchSemitones: 0
-    });
-  });
-
-  it('realigns individual stem transpose values when global transpose changes', async () => {
-    const { engine } = makeEngineWithPitchShift();
-    await engine.loadSong({
-      id: 'glorybox',
-      title: 'Glory Box',
-      stems: stemNames.map((name) => ({ name, label: name, url: `${name}.mp3` }))
-    });
-
-    await engine.setGlobalTransposeSemitones(2);
-    await engine.setStemPitchCorrection('bass', 1);
-    expect(engine.getSnapshot().stems.bass).toMatchObject({
-      pitchCorrectionSemitones: 1,
-      effectivePitchSemitones: 3
-    });
+    expect(snapshot.stems.vocals).toMatchObject({ pitchAdjustable: true, effectivePitchSemitones: 2 });
+    expect(snapshot.stems.bass).toMatchObject({ pitchAdjustable: true, effectivePitchSemitones: 2 });
+    expect(snapshot.stems.other).toMatchObject({ pitchAdjustable: true, effectivePitchSemitones: 2 });
+    expect(snapshot.stems.drums).toMatchObject({ pitchAdjustable: false, effectivePitchSemitones: 0 });
 
     await engine.setGlobalTransposeSemitones(-1);
-
-    const snapshot = engine.getSnapshot();
+    snapshot = engine.getSnapshot();
     expect(snapshot.globalTransposeSemitones).toBe(-1);
-    expect(snapshot.stems.vocals).toMatchObject({
-      pitchCorrectionSemitones: 0,
-      effectivePitchSemitones: -1
-    });
-    expect(snapshot.stems.bass).toMatchObject({
-      pitchCorrectionSemitones: 0,
-      effectivePitchSemitones: -1
-    });
-    expect(snapshot.stems.drums).toMatchObject({
-      pitchCorrectionSemitones: 0,
-      effectivePitchSemitones: 0
-    });
-
-    await engine.adjustStemPitchCorrection('bass', 1);
-    expect(engine.getSnapshot().stems.bass).toMatchObject({
-      pitchCorrectionSemitones: 1,
-      effectivePitchSemitones: 0
-    });
+    expect(snapshot.stems.vocals.effectivePitchSemitones).toBe(-1);
+    expect(snapshot.stems.bass.effectivePitchSemitones).toBe(-1);
+    expect(snapshot.stems.drums.effectivePitchSemitones).toBe(0);
   });
 
   it('routes only non-drum stems with active pitch through pitch shift nodes', async () => {

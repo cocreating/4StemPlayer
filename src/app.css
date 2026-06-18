@@ -826,8 +826,7 @@ pre {
   line-height: 1;
 }
 
-.transpose-control,
-.bpm-control {
+.transpose-control {
   display: grid;
   grid-template-columns: 2.1rem max-content 2.1rem max-content;
   align-items: center;
@@ -835,26 +834,14 @@ pre {
   justify-content: space-evenly;
 }
 
-.stem-pitch-control {
-  display: grid;
-  grid-template-columns: repeat(2, 2.1rem) max-content;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.transpose-control button,
-.bpm-control button,
-.stem-pitch-control button {
+.transpose-control button {
   min-height: 2.1rem;
   padding: 0.25rem 0.45rem;
   font-size: 0.82rem;
   line-height: 1;
 }
 
-.transpose-control output,
-.bpm-control output,
-.stem-pitch-control output,
-.stem-pitch-locked {
+.transpose-control output {
   min-height: 2.1rem;
   display: grid;
   place-items: center;
@@ -868,10 +855,6 @@ pre {
   padding-inline: 0.55rem;
   text-align: center;
   white-space: nowrap;
-}
-
-.stem-pitch-locked {
-  grid-column: 1 / -1;
 }
 
 .primary-action,
@@ -906,8 +889,7 @@ button.active::after {
   justify-content: space-between;
 }
 
-.transport-seek .transpose-control,
-.transport-seek .bpm-control {
+.transport-seek .transpose-control {
   border-top: 1px solid var(--line);
   margin-top: 0.45rem;
   padding-top: 0.55rem;
@@ -1022,9 +1004,6 @@ button.active::after {
   gap: 0.6rem;
 }
 
-.stem-pitch-control {
-  max-width: 18rem;
-}
 
 .waveform-shell {
   position: relative;
@@ -1228,8 +1207,7 @@ button.active::after {
     grid-template-columns: 1fr minmax(16rem, 24rem);
   }
 
-  .transpose-control,
-  .bpm-control {
+  .transpose-control {
     display: grid;
     grid-template-columns: 2.1rem max-content 2.1rem max-content;
     align-items: center;
@@ -1262,11 +1240,6 @@ button.active::after {
   .volume-control {
     grid-template-columns: minmax(8rem, 12rem) 1fr 3rem;
     align-items: center;
-  }
-
-  .stem-pitch-control {
-    justify-self: start;
-    width: min(100%, 18rem);
   }
 }
 

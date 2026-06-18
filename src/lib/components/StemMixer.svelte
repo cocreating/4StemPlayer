@@ -11,7 +11,6 @@
     onMute?: (name: StemName, muted: boolean) => void;
     onSolo?: (name: StemName, solo: boolean) => void;
     onVolume?: (name: StemName, volume: number) => void;
-    onPitchCorrection?: (name: StemName, delta: number) => void;
     onSeek?: (time: number) => void;
   };
 
@@ -22,7 +21,6 @@
     onMute = () => {},
     onSolo = () => {},
     onVolume = () => {},
-    onPitchCorrection = () => {},
     onSeek = () => {}
   }: Props = $props();
 
@@ -42,7 +40,6 @@
         onMute={(muted) => onMute(stemName, muted)}
         onSolo={(solo) => onSolo(stemName, solo)}
         onVolume={(volume) => onVolume(stemName, volume)}
-        onPitchCorrection={(delta) => onPitchCorrection(stemName, delta)}
         onSeek={onSeek}
       />
     {/if}

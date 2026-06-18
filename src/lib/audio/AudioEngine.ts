@@ -34,7 +34,6 @@ export interface StemPlaybackState {
   effectiveGain: number;
   meterLevel: number;
   pitchAdjustable: boolean;
-  pitchCorrectionSemitones: number;
   effectivePitchSemitones: number;
   pitchShiftError: string | null;
 }
@@ -191,7 +190,6 @@ function createEmptyStem(name: StemName): StemPlaybackState {
     effectiveGain: 1,
     meterLevel: 0,
     pitchAdjustable: isPitchAdjustableStem(name),
-    pitchCorrectionSemitones: 0,
     effectivePitchSemitones: 0,
     pitchShiftError: null
   };
@@ -347,7 +345,6 @@ export class AudioEngine {
         effectiveGain: stem.effectiveGain,
         meterLevel: stem.meterLevel,
         pitchAdjustable: stem.pitchAdjustable,
-        pitchCorrectionSemitones: stem.pitchCorrectionSemitones,
         effectivePitchSemitones: stem.effectivePitchSemitones,
         pitchShiftError: stem.pitchShiftError
       };
@@ -510,7 +507,6 @@ export class AudioEngine {
 
   async setGlobalTransposeSemitones(value: number) {
     this.globalTransposeSemitones = clampPitchSemitones(value);
-    this.resetStemPitchCorrections();
     this.updateEffectivePitchState();
     this.applyMasterGainForStoppedPlayback();
     await this.applyPitchGraphForPlayback();
@@ -519,27 +515,6 @@ export class AudioEngine {
 
   async adjustGlobalTransposeSemitones(delta: number) {
     await this.setGlobalTransposeSemitones(this.globalTransposeSemitones + delta);
-  }
-
-  async setStemPitchCorrection(name: StemName, value: number) {
-    const stem = this.requireStem(name);
-    if (!stem.pitchAdjustable) {
-      stem.pitchCorrectionSemitones = 0;
-      stem.effectivePitchSemitones = 0;
-      this.emit();
-      return;
-    }
-
-    stem.pitchCorrectionSemitones = clampPitchSemitones(value);
-    this.updateEffectivePitch(stem);
-    this.applyMasterGainForStoppedPlayback();
-    await this.applyPitchGraphForPlayback();
-    this.emit();
-  }
-
-  async adjustStemPitchCorrection(name: StemName, delta: number) {
-    const stem = this.requireStem(name);
-    await this.setStemPitchCorrection(name, stem.pitchCorrectionSemitones + delta);
   }
 
   destroy() {
@@ -754,25 +729,11 @@ export class AudioEngine {
     }
   }
 
-  private resetStemPitchCorrections() {
-    for (const stem of this.stems.values()) {
-      stem.pitchCorrectionSemitones = 0;
-    }
-  }
-
   private updateEffectivePitch(stem: LoadedStem) {
     stem.pitchAdjustable = isPitchAdjustableStem(stem.name);
-    if (!stem.pitchAdjustable) {
-      stem.pitchCorrectionSemitones = 0;
-      stem.effectivePitchSemitones = 0;
-      return;
-    }
-
-    stem.effectivePitchSemitones = effectiveStemPitchSemitones(
-      stem.name,
-      this.globalTransposeSemitones,
-      stem.pitchCorrectionSemitones
-    );
+    stem.effectivePitchSemitones = stem.pitchAdjustable
+      ? effectiveStemPitchSemitones(stem.name, this.globalTransposeSemitones)
+      : 0;
   }
 
   private async applyPitchGraphForPlayback() {
