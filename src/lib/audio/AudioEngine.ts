@@ -422,7 +422,9 @@ export class AudioEngine {
 
     try {
       await this.runExclusive(async () => {
-        await this.audioContext.resume?.();
+        if (this.audioContext.state === 'suspended') {
+          await this.audioContext.resume?.();
+        }
         await this.syncPitchNodes();
         // The user may have pressed Stop/Play or seeked while the pitch worklet
         // was initializing. If so, abandon this start instead of launching
@@ -585,10 +587,15 @@ export class AudioEngine {
     this.playing = false;
     this.loading = false;
     this.errors = [];
+    this.emit();
+  }
+
+  dispose() {
+    this.destroy();
+    this.listeners.clear();
     if (this.ownsAudioContext && typeof this.audioContext.close === 'function') {
       void this.audioContext.close().catch(() => {});
     }
-    this.emit();
   }
 
   private async loadStem(stem: LoadableStem) {
@@ -623,7 +630,7 @@ export class AudioEngine {
 
     try {
       const audioData = await this.fetchArrayBuffer(stem.url);
-      const decoded = await this.audioContext.decodeAudioData(audioData.slice(0));
+      const decoded = await this.audioContext.decodeAudioData(audioData);
       loadedStem.originalBuffer = await this.processDecodedBuffer(decoded);
       loadedStem.buffer = loadedStem.originalBuffer;
       loadedStem.loaded = true;

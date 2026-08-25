@@ -21,8 +21,11 @@ shows the deployed commit so you can match what you're testing to an entry here.
   `L` (toggle section loop), and `Escape` (dismiss open popovers).
 - **Waveform Peaks In-Memory Cache**: `WaveformView` caches `.peaks.json` fetches in
   a `SvelteMap` to eliminate redundant network requests when expanding or toggling stem rows.
-- **AudioContext Lifecycle Cleanup**: `AudioEngine` tracks context ownership and properly
-  closes `AudioContext` on `destroy()`, preventing hardware audio device leaks across song loads.
+- **Instant Song Loading & Warm AudioContext Reuse**: decoupled song reset from AudioContext
+  teardown, eliminated sequential network waterfalls by parallelizing metadata and stem downloads,
+  and kept a single warm `AudioContext` across song changes to eliminate device driver re-negotiation delays.
+- **AudioContext Lifecycle Cleanup**: `AudioEngine` provides `dispose()` to properly
+  close `AudioContext` on page unmount while keeping `destroy()` fast and non-destructive during song switches.
 
 ### Changed
 - **Svelte 5 Idiomatic Reactivity & Keyed Loops**: converted all `{#each}` loops

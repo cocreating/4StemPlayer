@@ -111,13 +111,31 @@
     saveThemePreference(getBrowserStorage(), nextTheme);
   }
 
+  function getOrCreateEngine(): AudioEngine {
+    if (!engine) {
+      engine = new AudioEngine({
+        decodeProfile: lowMemoryActive ? LOW_MEMORY_DECODE_PROFILE : null,
+        pitchTempoMode: renderModeActive ? 'render' : 'realtime',
+        driftCorrectionIntervalMs: renderModeActive ? MOBILE_SNAPSHOT_INTERVAL_MS : undefined
+      });
+      unsubscribe = engine.subscribe((snapshot) => {
+        engineSnapshot = snapshot;
+      });
+    }
+    return engine;
+  }
+
   function toggleLowMemory() {
     const nextActive = !lowMemoryActive;
     lowMemoryActive = nextActive;
     saveLowMemoryPreference(getBrowserStorage(), nextActive ? 'on' : 'off');
 
-    // Buffers are already decoded at the previous fidelity, so re-load the
-    // current song to apply the new decode profile.
+    // Recreate engine with new decode profile and reload current song
+    if (engine) {
+      unsubscribe?.();
+      engine.dispose();
+      engine = null;
+    }
     if (selectedSongId) {
       void selectSong(selectedSongId);
     }
@@ -157,42 +175,36 @@
     lyricsOpen = false;
     saveSelectedSongId(getBrowserStorage(), songId);
 
-    unsubscribe?.();
-    engine?.destroy();
-    engine = new AudioEngine({
-      decodeProfile: lowMemoryActive ? LOW_MEMORY_DECODE_PROFILE : null,
-      pitchTempoMode: renderModeActive ? 'render' : 'realtime',
-      driftCorrectionIntervalMs: renderModeActive ? MOBILE_SNAPSHOT_INTERVAL_MS : undefined
-    });
-    unsubscribe = engine.subscribe((snapshot) => {
-      engineSnapshot = snapshot;
-    });
+    const activeEngine = getOrCreateEngine();
+    const stemNames = orderedStemNames(nextEntry.stems);
 
     try {
-      const bundle = await loadSongBundle(nextEntry);
+      const [bundle] = await Promise.all([
+        loadSongBundle(nextEntry),
+        activeEngine.loadSong({
+          id: nextEntry.id,
+          title: nextEntry.title,
+          stems: stemNames.map((name) => ({
+            name,
+            label: stemLabel(name),
+            url: nextEntry.stems[name]
+          }))
+        })
+      ]);
+
       songBundle = bundle;
-      const stemNames = orderedStemNames(nextEntry.stems);
-      await engine.loadSong({
-        id: nextEntry.id,
-        title: bundle.metadata.title,
-        stems: stemNames.map((name) => ({
-          name,
-          label: stemLabel(name),
-          url: nextEntry.stems[name]
-        }))
-      });
 
       const savedMix = readSongMixPreferences(getBrowserStorage(), nextEntry.id);
       if (savedMix) {
         for (const [stemName, pref] of Object.entries(savedMix)) {
           if (typeof pref.volume === 'number') {
-            engine.setVolume(stemName, pref.volume);
+            activeEngine.setVolume(stemName, pref.volume);
           }
           if (typeof pref.muted === 'boolean') {
-            engine.setMuted(stemName, pref.muted);
+            activeEngine.setMuted(stemName, pref.muted);
           }
           if (typeof pref.solo === 'boolean') {
-            engine.setSolo(stemName, pref.solo);
+            activeEngine.setSolo(stemName, pref.solo);
           }
         }
       }
@@ -538,7 +550,7 @@
       clearTimeout(mixSaveTimer);
     }
     unsubscribe?.();
-    engine?.destroy();
+    engine?.dispose();
     void releaseWakeLock();
   });
 </script>
