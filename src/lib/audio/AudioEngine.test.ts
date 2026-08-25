@@ -182,7 +182,9 @@ function makeEngineWithPitchShift() {
   const engine = new AudioEngine({
     audioContext: context as unknown as AudioContext,
     fetchArrayBuffer,
-    createPitchShiftNode
+    createPitchShiftNode,
+    pitchTempoMode: 'realtime',
+    wait: async () => {}
   } as unknown as ConstructorParameters<typeof AudioEngine>[0]);
   return { context, engine, fetchArrayBuffer, createPitchShiftNode, pitchNodes };
 }
@@ -404,7 +406,7 @@ describe('AudioEngine', () => {
     expect(snapshot.stems.drums.effectivePitchSemitones).toBe(0);
   });
 
-  it('routes only non-drum stems with active pitch through pitch shift nodes', async () => {
+  it('routes all stems through pitch shift nodes when transpose is active so drums remain in sync', async () => {
     const { context, engine, createPitchShiftNode, pitchNodes } = makeEngineWithPitchShift();
     await engine.loadSong({
       id: 'glorybox',
@@ -415,14 +417,12 @@ describe('AudioEngine', () => {
     await engine.setGlobalTransposeSemitones(2);
     await engine.play();
 
-    expect(createPitchShiftNode).toHaveBeenCalledTimes(3);
-    expect(pitchNodes.map((node) => node.pitchSemitones.value)).toEqual([2, 2, 2]);
-    expect(context.sources[0]?.connectedTo[0]).toBe(pitchNodes[0]);
-    expect(context.sources[1]?.connectedTo[0]).toBe(stemGains(context)[1]);
-    expect(context.sources[2]?.connectedTo[0]).toBe(pitchNodes[1]);
-    expect(context.sources[3]?.connectedTo[0]).toBe(pitchNodes[2]);
+    expect(createPitchShiftNode).toHaveBeenCalledTimes(4);
+    expect(pitchNodes.map((node) => node.pitchSemitones.value)).toEqual([2, 0, 2, 2]);
+    expect(context.sources.map((source) => source.connectedTo[0])).toEqual(pitchNodes);
     expect(pitchNodes.map((node) => node.connectedTo[0])).toEqual([
       stemGains(context)[0],
+      stemGains(context)[1],
       stemGains(context)[2],
       stemGains(context)[3]
     ]);
@@ -437,6 +437,7 @@ describe('AudioEngine', () => {
       audioContext: context as unknown as AudioContext,
       fetchArrayBuffer,
       createPitchShiftNode,
+      pitchTempoMode: 'realtime',
       wait: async (milliseconds: number) => {
         waits.push(milliseconds);
       }
@@ -471,6 +472,7 @@ describe('AudioEngine', () => {
       audioContext: context as unknown as AudioContext,
       fetchArrayBuffer,
       createPitchShiftNode,
+      pitchTempoMode: 'realtime',
       wait: async (milliseconds: number) => {
         waits.push(milliseconds);
       }
@@ -490,8 +492,8 @@ describe('AudioEngine', () => {
 
     expect(waits).toEqual([]);
     expect(context.sources).toHaveLength(sourceCount);
-    expect(createPitchShiftNode).toHaveBeenCalledTimes(3);
-    expect(pitchNodes.map((node) => node.pitchSemitones.value)).toEqual([2, 2, 2]);
+    expect(createPitchShiftNode).toHaveBeenCalledTimes(4);
+    expect(pitchNodes.map((node) => node.pitchSemitones.value)).toEqual([2, 0, 2, 2]);
   });
 
   it('destroys previous audio resources before loading a new song', async () => {
@@ -584,6 +586,7 @@ describe('AudioEngine', () => {
       audioContext: context as unknown as AudioContext,
       fetchArrayBuffer,
       createPitchShiftNode,
+      pitchTempoMode: 'realtime',
       wait: async () => {}
     } as unknown as ConstructorParameters<typeof AudioEngine>[0]);
 
@@ -710,6 +713,10 @@ describe('AudioEngine', () => {
 
     await engine.setGlobalTransposeSemitones(0);
     expect(createRenderedBuffer).toHaveBeenCalledTimes(7); // revert reuses the original buffers
+
+    await engine.setGlobalTransposeSemitones(2);
+    // Switching back to an already-rendered key (+2) reuses cached buffers with 0 new render passes
+    expect(createRenderedBuffer).toHaveBeenCalledTimes(7);
   });
 
   it('exposes a rendering flag while offline renders are in flight', async () => {
@@ -778,6 +785,7 @@ describe('AudioEngine', () => {
       audioContext: context as unknown as AudioContext,
       fetchArrayBuffer: vi.fn(async () => new ArrayBuffer(8)),
       createPitchShiftNode,
+      pitchTempoMode: 'realtime',
       wait: async () => {}
     } as unknown as ConstructorParameters<typeof AudioEngine>[0]);
 

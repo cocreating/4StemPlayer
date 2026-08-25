@@ -72,4 +72,10 @@ describe('TransportBar', () => {
     expect(raiseIndex).toBeGreaterThan(outputIndex);
     expect(resetIndex).toBeGreaterThan(raiseIndex);
   });
+
+  it('disables transpose buttons at boundary limits and reset when at zero', () => {
+    expect(transportBarSource).toContain('disabled={disabled || transposeSemitones <= PITCH_SEMITONE_MIN}');
+    expect(transportBarSource).toContain('disabled={disabled || transposeSemitones >= PITCH_SEMITONE_MAX}');
+    expect(transportBarSource).toContain('disabled={disabled || transposeSemitones === 0}');
+  });
 });

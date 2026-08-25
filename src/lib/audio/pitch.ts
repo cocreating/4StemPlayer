@@ -1,7 +1,7 @@
 import type { StemName } from './AudioEngine';
 
-export const PITCH_SEMITONE_MIN = -12;
-export const PITCH_SEMITONE_MAX = 12;
+export const PITCH_SEMITONE_MIN = -3;
+export const PITCH_SEMITONE_MAX = 3;
 
 export function clampPitchSemitones(value: number) {
   if (!Number.isFinite(value)) {

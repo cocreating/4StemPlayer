@@ -123,17 +123,13 @@ async function defaultCreateRenderedBuffer(
     import('@soundtouchjs/audio-worklet/processor?url')
   ]);
   const processorUrl = (processorUrlModule as { default: string }).default;
-  // The non-quick WSOLA search is ~1.8x slower. Its quality benefit only shows
-  // on large pitch shifts, so reserve it for those and use the fast search for
-  // small transposes (and the pitch-0 drums pass) to keep rendering quick.
-  const gentle = transform.playbackRate === 1 && Math.abs(transform.pitchSemitones) <= 2;
   return processOffline({
     input,
     processorUrl,
     pitchSemitones: transform.pitchSemitones,
     playbackRate: transform.playbackRate,
     interpolationStrategy: 'lanczos',
-    stretchParameters: { quickSeek: gentle, overlapMs: gentle ? 8 : 12 }
+    stretchParameters: { quickSeek: false, overlapMs: 12 }
   });
 }
 
@@ -162,6 +158,8 @@ interface LoadedStem extends StemPlaybackState {
   originalBuffer: AudioBuffer | null;
   /** The pitch/tempo transform currently baked into `buffer` (null = original). */
   renderedTransform: RenderTransform | null;
+  /** Cached offline-rendered buffers keyed by transform so switching back is instant. */
+  renderedCache: Map<string, AudioBuffer>;
   gainNode: GainNode;
   analyserNode: AnalyserNode | null;
   meterData: Uint8Array<ArrayBuffer> | null;
@@ -251,10 +249,14 @@ async function defaultCreatePitchShiftNode(audioContext: AudioContext): Promise<
   }
   await registration;
 
-  const node = new SoundTouchNode({ context: audioContext });
+  const node = new SoundTouchNode({
+    context: audioContext,
+    interpolationStrategy: 'lanczos'
+  });
   node.pitch.value = 1;
   node.pitchSemitones.value = 0;
   node.playbackRate.value = 1;
+  node.setStretchParameters({ quickSeek: false, overlapMs: 12 });
   return node;
 }
 
@@ -309,7 +311,7 @@ export class AudioEngine {
     this.decodeProfile = options.decodeProfile ?? null;
     this.createOfflineAudioContext =
       options.createOfflineAudioContext ?? defaultCreateOfflineAudioContext;
-    this.pitchTempoMode = options.pitchTempoMode ?? 'realtime';
+    this.pitchTempoMode = options.pitchTempoMode ?? 'render';
     this.createRenderedBuffer = options.createRenderedBuffer ?? defaultCreateRenderedBuffer;
     this.masterGainNode = this.audioContext.createGain();
     this.masterLimiterNode = this.createMasterLimiter();
@@ -571,6 +573,7 @@ export class AudioEngine {
       stem.pitchNode?.disconnect();
       stem.analyserNode?.disconnect();
       stem.gainNode.disconnect();
+      stem.renderedCache.clear();
     }
     this.stems.clear();
     this.songId = null;
@@ -623,7 +626,8 @@ export class AudioEngine {
       pitchNode: null,
       buffer: null,
       originalBuffer: null,
-      renderedTransform: null
+      renderedTransform: null,
+      renderedCache: new Map()
     };
     this.stems.set(stem.name, loadedStem);
     this.emit();
@@ -846,6 +850,10 @@ export class AudioEngine {
     return a.pitchSemitones === b.pitchSemitones && a.playbackRate === b.playbackRate;
   }
 
+  private static renderTransformKey(transform: RenderTransform): string {
+    return `${transform.pitchSemitones}:${transform.playbackRate}`;
+  }
+
   private async reconcileRenderedBuffers(epoch: number) {
     if (this.playbackEpoch !== epoch) {
       return;
@@ -879,40 +887,64 @@ export class AudioEngine {
       this.stopSources();
     }
 
+    // Apply any cached buffers or revert to original if desired is null
+    for (const { stem, desired } of targets) {
+      if (!desired) {
+        stem.buffer = stem.originalBuffer;
+        stem.renderedTransform = null;
+        stem.pitchShiftError = null;
+      } else {
+        const key = AudioEngine.renderTransformKey(desired);
+        if (stem.renderedCache.has(key)) {
+          stem.buffer = stem.renderedCache.get(key)!;
+          stem.renderedTransform = desired;
+          stem.pitchShiftError = null;
+        }
+      }
+    }
+
     const pending = targets.filter(
       ({ stem, desired }) =>
-        stem.originalBuffer && !AudioEngine.transformsEqual(desired, stem.renderedTransform)
+        stem.originalBuffer &&
+        !AudioEngine.transformsEqual(desired, stem.renderedTransform) &&
+        desired !== null &&
+        !stem.renderedCache.has(AudioEngine.renderTransformKey(desired))
     );
 
-    this.rendering = true;
-    this.renderProgress = { done: 0, total: pending.length };
-    this.emit();
+    if (pending.length > 0) {
+      this.rendering = true;
+      this.renderProgress = { done: 0, total: pending.length };
+      this.emit();
 
-    try {
-      // Render stems concurrently (capped) so a six-stem song does not wait
-      // through six sequential offline passes. The cap bounds peak memory.
-      await this.mapWithConcurrency(pending, RENDER_CONCURRENCY, async ({ stem, desired }) => {
-        if (!desired) {
-          stem.buffer = stem.originalBuffer;
-          stem.renderedTransform = null;
-          stem.pitchShiftError = null;
-        } else {
-          try {
-            stem.buffer = await this.createRenderedBuffer(stem.originalBuffer!, desired);
-            stem.renderedTransform = desired;
-            stem.pitchShiftError = null;
-          } catch (error) {
+      try {
+        // Render stems concurrently (capped) so a six-stem song does not wait
+        // through six sequential offline passes. The cap bounds peak memory.
+        await this.mapWithConcurrency(pending, RENDER_CONCURRENCY, async ({ stem, desired }) => {
+          if (!desired) {
             stem.buffer = stem.originalBuffer;
             stem.renderedTransform = null;
-            stem.pitchShiftError = error instanceof Error ? error.message : String(error);
+            stem.pitchShiftError = null;
+          } else {
+            try {
+              const rendered = await this.createRenderedBuffer(stem.originalBuffer!, desired);
+              const key = AudioEngine.renderTransformKey(desired);
+              stem.renderedCache.set(key, rendered);
+              stem.buffer = rendered;
+              stem.renderedTransform = desired;
+              stem.pitchShiftError = null;
+            } catch (error) {
+              stem.buffer = stem.originalBuffer;
+              stem.renderedTransform = null;
+              stem.pitchShiftError = error instanceof Error ? error.message : String(error);
+            }
           }
-        }
-        this.renderProgress = { done: this.renderProgress.done + 1, total: pending.length };
-        this.emit();
-      });
-    } finally {
-      this.rendering = false;
-      this.renderProgress = { done: 0, total: 0 };
+          this.renderProgress = { done: this.renderProgress.done + 1, total: pending.length };
+          this.emit();
+        });
+      } finally {
+        this.rendering = false;
+        this.renderProgress = { done: 0, total: 0 };
+      }
     }
 
     if (this.playbackEpoch !== epoch) {
@@ -1003,7 +1035,7 @@ export class AudioEngine {
       // Pitch/tempo are baked into rendered buffers; no real-time nodes exist.
       return false;
     }
-    return this.tempoRatio !== 1 || (stem.pitchAdjustable && stem.effectivePitchSemitones !== 0);
+    return this.anyTransformActive();
   }
 
   private pitchRoutingNeedsRestart() {

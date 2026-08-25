@@ -1,5 +1,9 @@
 <script lang="ts">
-  import { formatPitchSemitones } from '$lib/audio/pitch';
+  import {
+    PITCH_SEMITONE_MAX,
+    PITCH_SEMITONE_MIN,
+    formatPitchSemitones
+  } from '$lib/audio/pitch';
   import { formatDurationSeconds, formatTime } from '$lib/songs';
   import { displayTransportSongTitle } from '$lib/transport';
 
@@ -135,14 +139,30 @@
     </div>
 
     <div class="transpose-control" aria-label="Global transpose for non-drum tracks">
-      <button type="button" disabled={disabled} aria-label="Transpose down one semitone" onclick={() => onTranspose(-1)}>
+      <button
+        type="button"
+        disabled={disabled || transposeSemitones <= PITCH_SEMITONE_MIN}
+        aria-label="Transpose down one semitone"
+        onclick={() => onTranspose(-1)}
+      >
         -
       </button>
       <output aria-label="Global transpose">{transposeLabel}</output>
-      <button type="button" disabled={disabled} aria-label="Transpose up one semitone" onclick={() => onTranspose(1)}>
+      <button
+        type="button"
+        disabled={disabled || transposeSemitones >= PITCH_SEMITONE_MAX}
+        aria-label="Transpose up one semitone"
+        onclick={() => onTranspose(1)}
+      >
         +
       </button>
-      <button type="button" disabled={disabled} aria-label="Reset global transpose" title="Reset global transpose" onclick={onTransposeReset}>
+      <button
+        type="button"
+        disabled={disabled || transposeSemitones === 0}
+        aria-label="Reset global transpose"
+        title="Reset global transpose"
+        onclick={onTransposeReset}
+      >
         Reset transpose
       </button>
     </div>

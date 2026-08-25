@@ -115,8 +115,8 @@
     if (!engine) {
       engine = new AudioEngine({
         decodeProfile: lowMemoryActive ? LOW_MEMORY_DECODE_PROFILE : null,
-        pitchTempoMode: renderModeActive ? 'render' : 'realtime',
-        driftCorrectionIntervalMs: renderModeActive ? MOBILE_SNAPSHOT_INTERVAL_MS : undefined
+        pitchTempoMode: 'render',
+        driftCorrectionIntervalMs: MOBILE_SNAPSHOT_INTERVAL_MS
       });
       unsubscribe = engine.subscribe((snapshot) => {
         engineSnapshot = snapshot;
