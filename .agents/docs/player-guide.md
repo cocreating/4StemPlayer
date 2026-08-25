@@ -52,13 +52,14 @@ npm run build
 
 ## Browser preferences
 
-The player remembers three local browser preferences:
+The player automatically remembers local browser preferences in `localStorage`:
 
 - the selected light or dark theme
 - the last selected song
 - the low-memory ("Lite") mode setting (`on`, `off`, or `auto`)
+- per-song mix balances: volume faders, mute, and solo states are preserved individually for each track
 
-All preferences are stored in `localStorage` on the user's browser. If a stored song is no longer present in the manifest, the player falls back to the first available song.
+If a stored song is no longer present in the manifest, the player falls back to the first available song.
 
 ## Low-memory (Lite) mode
 
@@ -70,13 +71,31 @@ The `Lite` toggle lives in the header next to the theme switch. Its default is c
 
 ## Player controls
 
-The transport panel displays the currently selected song title above two rows of command buttons. The first row contains Play, Stop, and Mixer. The second row contains Sections and Lyrics. Songs with section markers enable the Sections button; pressing it opens a floating panel below the transport controls with seek buttons for each marker. The Lyrics button opens a matching floating lyrics panel below the transport controls.
+The transport panel displays the currently selected song title above two rows of command buttons. The first row contains Play, Stop, and Mixer. The second row contains Sections and Lyrics. Songs with section markers enable the Sections button; pressing it opens a floating panel below the transport controls with seek buttons and dedicated loop toggles (`🔁`) for each marker. The Lyrics button opens a matching floating lyrics panel below the transport controls.
 
-The Mixer button opens a compact floating mixer panel with a minimal DJ-style layout. Each stem gets a vertical volume fader, Mute and Solo buttons, a percentage readout, and live segmented LED meters driven by per-stem Web Audio analyser levels. Mixer controls stay synchronized with the matching full stem row: changing volume, mute, or solo in either place updates the same stem state.
+### Sections & A-B Looping
+Clicking any section button seeks immediately to the section start. Clicking the repeat icon (`🔁`) toggles seamless looping for that section, wrapping playback back to the section start point automatically. Active sections and active loops are visually highlighted. Looping can also be toggled with the `L` key.
+
+### Floating Mixer & Presets
+The Mixer button opens a compact floating mixer panel with a minimal DJ-style layout. Above the channel strips, a **Presets** toolbar provides one-click practice mixes:
+- **Reset**: resets all stems to 100% volume, unmuted, and unsolo'd.
+- **Minus Vocals**: mutes vocals for singing along / karaoke.
+- **Minus Drums**: mutes drums for drummer practice.
+- **Rhythm Section**: solos drums and bass for groove rehearsal.
+
+Each stem gets a vertical volume fader, Mute and Solo buttons, a percentage readout, and live segmented LED meters driven by per-stem Web Audio analyser levels. Mixer controls stay synchronized with the matching full stem row.
 
 On portrait phone screens, the mixer switches to tighter channel strips so all available stems fit inside the floating panel without horizontal scrolling. The full stem mixer remains visible below the transport area for waveform, mute, solo, and volume controls.
 
-Each stem row starts collapsed. Use the right-aligned switch in the stem controls to expand or collapse the waveform and volume controls for that stem.
+### Keyboard Shortcuts
+- `Space`: Play / Pause toggle.
+- `ArrowLeft` / `ArrowRight`: Seek backward/forward 5 seconds (or 15 seconds with `Shift`).
+- `Home` / `0`: Jump to beginning (0s).
+- `[` / `]`: Transpose down / up by 1 semitone.
+- `L`: Toggle loop on the currently playing section.
+- `Escape`: Dismiss active popovers (Mixer, Sections, Lyrics).
+
+Each stem row starts collapsed. Use the right-aligned switch in the stem controls to expand or collapse the waveform and volume controls for that stem. Precomputed waveform peak JSON files are cached in memory so expanding stems is instantaneous.
 
 Use the global transpose buttons below the transport readouts to shift all non-drum stems up or down by a semitone. The current transpose amount is displayed between decrement (`-`) and increment (`+`) buttons, and the `Reset transpose` button resets the transpose back to 0. Transpose is global only — every non-drum stem moves together by the same amount, and drum stems stay at original pitch. (Per-stem transpose and the BPM/tempo controls were removed to keep the player lean; the engine still has the tempo capability internally but it is no longer exposed in the UI.)
 

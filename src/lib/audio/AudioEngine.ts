@@ -38,6 +38,11 @@ export interface StemPlaybackState {
   pitchShiftError: string | null;
 }
 
+export interface LoopRange {
+  start: number;
+  end: number;
+}
+
 export interface AudioEngineSnapshot {
   songId: string | null;
   title: string | null;
@@ -52,6 +57,7 @@ export interface AudioEngineSnapshot {
   /** Progress of the in-flight offline render (`done` of `total` stems). */
   renderProgress: { done: number; total: number };
   errors: string[];
+  loop: LoopRange | null;
   stems: Record<string, StemPlaybackState>;
 }
 
@@ -253,6 +259,7 @@ async function defaultCreatePitchShiftNode(audioContext: AudioContext): Promise<
 }
 
 export class AudioEngine {
+  private readonly ownsAudioContext: boolean;
   private readonly audioContext: AudioContext;
   private readonly fetchArrayBuffer: (url: string) => Promise<ArrayBuffer>;
   private readonly createPitchShiftNode: (audioContext: AudioContext) => Promise<PitchShiftNodeLike>;
@@ -288,8 +295,10 @@ export class AudioEngine {
   private renderProgress = { done: 0, total: 0 };
   /** Tempo ratio baked into the current playback buffers (render mode). */
   private renderedTempoRatio = 1;
+  private loop: LoopRange | null = null;
 
   constructor(options: EngineOptions = {}) {
+    this.ownsAudioContext = !options.audioContext;
     this.audioContext = options.audioContext ?? createBrowserAudioContext();
     this.fetchArrayBuffer = options.fetchArrayBuffer ?? defaultFetchArrayBuffer;
     this.createPitchShiftNode = options.createPitchShiftNode ?? defaultCreatePitchShiftNode;
@@ -368,6 +377,7 @@ export class AudioEngine {
       rendering: this.rendering,
       renderProgress: { ...this.renderProgress },
       errors: [...this.errors],
+      loop: this.loop ? { ...this.loop } : null,
       stems
     };
   }
@@ -524,7 +534,33 @@ export class AudioEngine {
     await this.setGlobalTransposeSemitones(this.globalTransposeSemitones + delta);
   }
 
+  setLoop(start: number, end: number) {
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end <= start) {
+      this.loop = null;
+    } else {
+      const maxDuration = this.duration > 0 ? this.duration : Math.max(end, start + 0.1);
+      const safeStart = clamp(start, 0, maxDuration);
+      const safeEnd = clamp(end, safeStart + 0.1, maxDuration);
+      this.loop = { start: safeStart, end: safeEnd };
+    }
+    this.emit();
+  }
+
+  clearLoop() {
+    this.loop = null;
+    this.emit();
+  }
+
+  toggleLoopRange(start: number, end: number) {
+    if (this.loop && Math.abs(this.loop.start - start) < 0.1 && Math.abs(this.loop.end - end) < 0.1) {
+      this.clearLoop();
+    } else {
+      this.setLoop(start, end);
+    }
+  }
+
   destroy() {
+    this.loop = null;
     this.playbackEpoch += 1;
     this.starting = false;
     this.stopDriftCorrection();
@@ -549,6 +585,9 @@ export class AudioEngine {
     this.playing = false;
     this.loading = false;
     this.errors = [];
+    if (this.ownsAudioContext && typeof this.audioContext.close === 'function') {
+      void this.audioContext.close().catch(() => {});
+    }
     this.emit();
   }
 
@@ -658,8 +697,16 @@ export class AudioEngine {
 
       source.connect(destination);
       source.onended = () => {
-        if (this.playing && this.getPosition() >= this.duration - 0.05) {
-          this.stop();
+        if (this.playing) {
+          if (this.loop && this.getPosition() >= this.loop.end - 0.05) {
+            this.seek(this.loop.start);
+          } else if (this.getPosition() >= this.duration - 0.05) {
+            if (this.loop) {
+              this.seek(this.loop.start);
+            } else {
+              this.stop();
+            }
+          }
         }
       };
       source.start(0, bufferOffset);
@@ -1070,8 +1117,16 @@ export class AudioEngine {
       }
 
       const currentPosition = this.getPosition();
+      if (this.loop && currentPosition >= this.loop.end) {
+        this.seek(this.loop.start);
+        return;
+      }
       if (currentPosition >= this.duration) {
-        this.stop();
+        if (this.loop) {
+          this.seek(this.loop.start);
+        } else {
+          this.stop();
+        }
         return;
       }
 

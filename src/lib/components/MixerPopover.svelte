@@ -31,6 +31,43 @@
   function handleVolumeInput(stemName: StemName, event: Event) {
     onVolume(stemName, Number((event.currentTarget as HTMLInputElement).value));
   }
+
+  function applyPreset(kind: 'reset' | 'mute-vocals' | 'mute-drums' | 'rhythm-only') {
+    if (kind === 'reset') {
+      for (const name of stemNames) {
+        onMute(name, false);
+        onSolo(name, false);
+        onVolume(name, 1);
+      }
+    } else if (kind === 'mute-vocals') {
+      for (const name of stemNames) {
+        onSolo(name, false);
+        if (name === 'vocals') {
+          onMute(name, true);
+        } else {
+          onMute(name, false);
+        }
+      }
+    } else if (kind === 'mute-drums') {
+      for (const name of stemNames) {
+        onSolo(name, false);
+        if (name === 'drums') {
+          onMute(name, true);
+        } else {
+          onMute(name, false);
+        }
+      }
+    } else if (kind === 'rhythm-only') {
+      for (const name of stemNames) {
+        onMute(name, false);
+        if (name === 'drums' || name === 'bass') {
+          onSolo(name, true);
+        } else {
+          onSolo(name, false);
+        }
+      }
+    }
+  }
 </script>
 
 {#if open}
@@ -52,13 +89,55 @@
     </div>
 
     <div class="mixer-deck">
+      <div class="mixer-presets" aria-label="Mix presets">
+        <span class="mixer-presets-title">Presets:</span>
+        <button
+          type="button"
+          class="mixer-preset-btn"
+          disabled={disabled}
+          onclick={() => applyPreset('reset')}
+        >
+          Reset
+        </button>
+        {#if stemNames.includes('vocals')}
+          <button
+            type="button"
+            class="mixer-preset-btn"
+            disabled={disabled}
+            onclick={() => applyPreset('mute-vocals')}
+          >
+            Minus Vocals
+          </button>
+        {/if}
+        {#if stemNames.includes('drums')}
+          <button
+            type="button"
+            class="mixer-preset-btn"
+            disabled={disabled}
+            onclick={() => applyPreset('mute-drums')}
+          >
+            Minus Drums
+          </button>
+        {/if}
+        {#if stemNames.includes('drums') && stemNames.includes('bass')}
+          <button
+            type="button"
+            class="mixer-preset-btn"
+            disabled={disabled}
+            onclick={() => applyPreset('rhythm-only')}
+          >
+            Rhythm Section
+          </button>
+        {/if}
+      </div>
+
       <div class="mixer-channel-bank" aria-label="Volume faders">
-        {#each stemNames as stemName}
+        {#each stemNames as stemName (stemName)}
           {@const stem = snapshot.stems[stemName]}
           {#if stem}
             <div class:mixer-channel-muted={stem.muted} class:solo={stem.solo} class="mixer-channel-strip">
               <div class="mixer-led-meter" aria-hidden="true">
-                {#each LED_LEVELS as level}
+                {#each LED_LEVELS as level, index (index)}
                   <span class:lit={stem.meterLevel >= level}></span>
                 {/each}
               </div>

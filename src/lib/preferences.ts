@@ -134,3 +134,49 @@ export function resolveInitialSongId(
 
   return songs[0]?.id ?? '';
 }
+
+export interface StemMixPreference {
+  volume?: number;
+  muted?: boolean;
+  solo?: boolean;
+}
+
+export type SongMixPreferences = Record<string, StemMixPreference>;
+
+const SONG_MIX_STORAGE_PREFIX = '4stem-player:mix:';
+
+export function readSongMixPreferences(
+  storage?: Pick<PreferenceStorage, 'getItem'>,
+  songId?: string
+): SongMixPreferences | null {
+  if (!songId) {
+    return null;
+  }
+  try {
+    const raw = storage?.getItem(`${SONG_MIX_STORAGE_PREFIX}${songId}`);
+    if (raw) {
+      const parsed = JSON.parse(raw) as SongMixPreferences;
+      if (typeof parsed === 'object' && parsed !== null) {
+        return parsed;
+      }
+    }
+  } catch {
+    // Ignore invalid JSON / storage errors.
+  }
+  return null;
+}
+
+export function saveSongMixPreferences(
+  storage: Pick<PreferenceStorage, 'setItem'> | undefined,
+  songId: string,
+  mix: SongMixPreferences
+) {
+  if (!songId) {
+    return;
+  }
+  try {
+    storage?.setItem(`${SONG_MIX_STORAGE_PREFIX}${songId}`, JSON.stringify(mix));
+  } catch {
+    // Storage can be unavailable in strict browser privacy modes.
+  }
+}

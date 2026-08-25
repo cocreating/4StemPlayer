@@ -28,7 +28,7 @@
     disabled={loading || songs.length === 0}
     onchange={handleChange}
   >
-    {#each songs as song}
+    {#each songs as song (song.id)}
       <option value={song.id}>{song.title} - {song.artist}</option>
     {/each}
   </select>

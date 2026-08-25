@@ -695,6 +695,43 @@ pre {
     linear-gradient(180deg, color-mix(in srgb, var(--surface-strong) 86%, transparent), var(--surface)),
     var(--surface);
   padding: 0.7rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.mixer-presets {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
+}
+
+.mixer-presets-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-right: 0.2rem;
+}
+
+.mixer-preset-btn {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mixer-preset-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+  background: var(--accent-soft);
 }
 
 .mixer-channel-bank {
@@ -1116,11 +1153,56 @@ button.active::after {
   gap: 0.5rem;
 }
 
+.section-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.4rem;
+  align-items: stretch;
+}
+
+.section-item .section-marker {
+  flex: 1;
+  min-width: 0;
+}
+
 .section-marker {
   display: flex;
   justify-content: space-between;
   gap: 1rem;
   text-align: left;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.section-marker.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-weight: 700;
+}
+
+.section-loop-btn {
+  display: inline-grid;
+  place-items: center;
+  padding: 0 0.65rem;
+  min-width: 2.75rem;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.section-loop-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+.section-loop-btn.loop-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  box-shadow: 0 0 0 1px var(--accent);
 }
 
 .lyrics-panel {

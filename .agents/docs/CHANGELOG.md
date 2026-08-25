@@ -6,6 +6,32 @@ shows the deployed commit so you can match what you're testing to an entry here.
 ## Unreleased
 
 ### Added
+- **A-B & Section Looping**: loop any song section seamlessly with live Web Audio
+  wrap-around, dedicated section loop buttons (🔁) in `SectionsPopover`, active
+  state highlighting, and keyboard shortcut `L` to toggle looping of the current section.
+- **Per-Song Mix Memory Persistence**: custom fader volumes, mute, and solo states
+  are automatically saved to `localStorage` per song, restoring your balance when
+  switching between tracks.
+- **Quick Mix Presets**: one-click practice presets in the floating Mixer popover:
+  `Reset` (100% faders, unmuted, unsolo'd), `Minus Vocals` (vocal rehearsal/karaoke),
+  `Minus Drums` (drummer practice), and `Rhythm Section` (drums + bass solo).
+- **Expanded Keyboard Navigation**: rehearsal shortcuts for fast navigation:
+  `Space` (play/pause), `ArrowLeft` / `ArrowRight` (seek -5s/+5s, or -15s/+15s with `Shift`),
+  `Home` / `0` (jump to beginning), `[` / `]` (transpose down/up 1 semitone),
+  `L` (toggle section loop), and `Escape` (dismiss open popovers).
+- **Waveform Peaks In-Memory Cache**: `WaveformView` caches `.peaks.json` fetches in
+  a `SvelteMap` to eliminate redundant network requests when expanding or toggling stem rows.
+- **AudioContext Lifecycle Cleanup**: `AudioEngine` tracks context ownership and properly
+  closes `AudioContext` on `destroy()`, preventing hardware audio device leaks across song loads.
+
+### Changed
+- **Svelte 5 Idiomatic Reactivity & Keyed Loops**: converted all `{#each}` loops
+  across `StemMixer`, `MixerPopover`, `SectionsPopover`, and `SongSelector` to keyed
+  blocks, and refactored `AppShell` to use `<svelte:window>` / `<svelte:document>` listeners.
+  Audited with `@sveltejs/mcp` `svelte-autofixer` with 0 issues.
+- **Optimized WakeLock Synchronization**: separated screen WakeLock effect from the
+  80ms progress ticker in `AppShell` so wake locks are only acquired or released when
+  playback actually toggles.
 - **Installable PWA** (`900712f`): web app manifest with maskable/Apple icons,
   so the player installs to a phone home screen and runs standalone.
 - **Offline support** (`900712f`): a service worker precaches the app shell and

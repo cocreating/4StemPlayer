@@ -7,17 +7,20 @@
     type DecodeProfile
   } from '$lib/audio/AudioEngine';
   import { buildMediaMetadataInit, mediaPositionState } from '$lib/pwa';
-  import { shouldHandlePlaybackShortcut } from '$lib/keyboard';
+  import { resolveKeyboardAction } from '$lib/keyboard';
   import { loadingFeedbackText } from '$lib/loadingFeedback';
   import {
     detectLowMemoryDefault,
     readLowMemoryPreference,
+    readSongMixPreferences,
     readStoredTheme,
     resolveInitialSongId,
     resolveLowMemoryActive,
     saveLowMemoryPreference,
     saveSelectedSongId,
+    saveSongMixPreferences,
     saveThemePreference,
+    type SongMixPreferences,
     type ThemeMode
   } from '$lib/preferences';
   import { loadSongBundle, loadSongManifest, orderedStemNames, stemLabel } from '$lib/songs';
@@ -178,6 +181,21 @@
           url: nextEntry.stems[name]
         }))
       });
+
+      const savedMix = readSongMixPreferences(getBrowserStorage(), nextEntry.id);
+      if (savedMix) {
+        for (const [stemName, pref] of Object.entries(savedMix)) {
+          if (typeof pref.volume === 'number') {
+            engine.setVolume(stemName, pref.volume);
+          }
+          if (typeof pref.muted === 'boolean') {
+            engine.setMuted(stemName, pref.muted);
+          }
+          if (typeof pref.solo === 'boolean') {
+            engine.setSolo(stemName, pref.solo);
+          }
+        }
+      }
     } catch (error) {
       appError = error instanceof Error ? error.message : String(error);
     } finally {
@@ -264,6 +282,40 @@
     scrollToTopOnMobile();
   }
 
+  function toggleSectionLoop(start: number, end: number) {
+    engine?.toggleLoopRange(start, end);
+  }
+
+  function toggleCurrentSectionLoop() {
+    if (!engine) {
+      return;
+    }
+    if (engineSnapshot?.loop) {
+      engine.clearLoop();
+      return;
+    }
+    const pos = engineSnapshot?.position ?? 0;
+    const dur = engineSnapshot?.duration ?? 0;
+    const sections = sectionMarkers;
+    if (!sections.length) {
+      return;
+    }
+    let activeIndex = sections.findIndex((s, i) => {
+      const next = sections[i + 1];
+      const end = s.end ?? next?.start ?? dur;
+      return pos >= s.start && pos < end;
+    });
+    if (activeIndex === -1) {
+      activeIndex = 0;
+    }
+    const active = sections[activeIndex];
+    if (active) {
+      const next = sections[activeIndex + 1];
+      const end = active.end ?? next?.start ?? (dur > active.start ? dur : active.start + 30);
+      engine.setLoop(active.start, end);
+    }
+  }
+
   function togglePlayback() {
     if (!engineSnapshot || songLoading || engineSnapshot.errors.length > 0) {
       return;
@@ -277,12 +329,43 @@
   }
 
   function handleKeydown(event: KeyboardEvent) {
-    if (!shouldHandlePlaybackShortcut(event)) {
+    const action = resolveKeyboardAction(event);
+    if (!action) {
       return;
     }
 
-    event.preventDefault();
-    togglePlayback();
+    if (action.type === 'play-pause') {
+      event.preventDefault();
+      togglePlayback();
+    } else if (action.type === 'escape') {
+      if (sectionsOpen || mixerOpen || lyricsOpen) {
+        event.preventDefault();
+        closeSections();
+        closeMixer();
+        closeLyrics();
+      }
+    } else if (action.type === 'loop-toggle') {
+      if (engineSnapshot && !songLoading) {
+        event.preventDefault();
+        toggleCurrentSectionLoop();
+      }
+    } else if (action.type === 'seek') {
+      if (engineSnapshot && engineSnapshot.duration > 0) {
+        event.preventDefault();
+        const currentPos = engineSnapshot.position;
+        seek(Math.min(engineSnapshot.duration, Math.max(0, currentPos + action.delta)));
+      }
+    } else if (action.type === 'seek-to') {
+      if (engineSnapshot && engineSnapshot.duration > 0) {
+        event.preventDefault();
+        seek(action.position);
+      }
+    } else if (action.type === 'transpose') {
+      if (engineSnapshot && !songLoading && engineSnapshot.errors.length === 0) {
+        event.preventDefault();
+        transpose(action.delta);
+      }
+    }
   }
 
   function registerServiceWorker() {
@@ -379,26 +462,65 @@
     }
   });
 
-  // Reflect playback state, position, and wake lock from the engine snapshot.
-  $effect(() => {
-    const snapshot = engineSnapshot;
-    const session = getMediaSession();
-    if (session) {
-      session.playbackState = snapshot?.playing ? 'playing' : 'paused';
-      const positionState = mediaPositionState(snapshot?.duration ?? 0, snapshot?.position ?? 0);
-      if (positionState) {
-        try {
-          session.setPositionState(positionState);
-        } catch {
-          // Ignore invalid position-state updates.
-        }
-      }
-    }
+  let isPlaying = $derived(engineSnapshot?.playing ?? false);
+  let playbackDuration = $derived(engineSnapshot?.duration ?? 0);
+  let playbackPosition = $derived(engineSnapshot?.position ?? 0);
 
-    if (snapshot?.playing) {
+  // Sync wake lock only when playback state changes.
+  $effect(() => {
+    if (isPlaying) {
       void acquireWakeLock();
     } else {
       void releaseWakeLock();
+    }
+  });
+
+  // Reflect playback state and position in MediaSession.
+  $effect(() => {
+    const session = getMediaSession();
+    if (!session) {
+      return;
+    }
+    session.playbackState = isPlaying ? 'playing' : 'paused';
+    const positionState = mediaPositionState(playbackDuration, playbackPosition);
+    if (positionState) {
+      try {
+        session.setPositionState(positionState);
+      } catch {
+        // Ignore invalid position-state updates.
+      }
+    }
+  });
+
+  let mixSaveTimer: ReturnType<typeof setTimeout> | null = null;
+  function schedulePersistMixPreferences() {
+    if (!selectedSongId || !engineSnapshot || songLoading) {
+      return;
+    }
+    if (mixSaveTimer) {
+      clearTimeout(mixSaveTimer);
+    }
+    mixSaveTimer = setTimeout(() => {
+      if (!selectedSongId || !engineSnapshot || songLoading) {
+        return;
+      }
+      const mix: SongMixPreferences = {};
+      for (const [stemName, stem] of Object.entries(engineSnapshot.stems)) {
+        mix[stemName] = {
+          volume: stem.volume,
+          muted: stem.muted,
+          solo: stem.solo
+        };
+      }
+      saveSongMixPreferences(getBrowserStorage(), selectedSongId, mix);
+    }, 250);
+  }
+
+  // Persist fader, mute, and solo changes per song.
+  $effect(() => {
+    const stems = engineSnapshot?.stems;
+    if (stems && selectedSongId && !songLoading) {
+      schedulePersistMixPreferences();
     }
   });
 
@@ -409,21 +531,20 @@
     registerServiceWorker();
     setupMediaSessionHandlers();
     void boot();
-    window.addEventListener('keydown', handleKeydown);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeydown);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
   });
 
   onDestroy(() => {
+    if (mixSaveTimer) {
+      clearTimeout(mixSaveTimer);
+    }
     unsubscribe?.();
     engine?.destroy();
     void releaseWakeLock();
   });
 </script>
+
+<svelte:window onkeydown={handleKeydown} />
+<svelte:document onvisibilitychange={handleVisibilityChange} />
 
 <main class="app-shell" class:app-reconfiguring={applyingTransform}>
   <header class="app-header" aria-labelledby="app-title">
@@ -495,8 +616,12 @@
           <SectionsPopover
             sections={sectionMarkers}
             open={sectionsOpen}
+            currentPosition={engineSnapshot?.position ?? 0}
+            duration={engineSnapshot?.duration ?? 0}
+            loop={engineSnapshot?.loop ?? null}
             onClose={closeSections}
             onSeek={seek}
+            onToggleLoop={toggleSectionLoop}
           />
           {#if selectedEntry && engineSnapshot}
             <MixerPopover

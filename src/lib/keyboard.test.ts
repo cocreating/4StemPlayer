@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { shouldHandlePlaybackShortcut } from './keyboard';
+import { resolveKeyboardAction, shouldHandlePlaybackShortcut } from './keyboard';
 
 describe('shouldHandlePlaybackShortcut', () => {
   it('handles Space key presses for playback', () => {
@@ -46,5 +46,78 @@ describe('shouldHandlePlaybackShortcut', () => {
         target: { tagName: 'DIV', isContentEditable: true }
       })
     ).toBe(false);
+  });
+});
+
+describe('resolveKeyboardAction', () => {
+  it('resolves Space to play-pause', () => {
+    expect(resolveKeyboardAction({ code: 'Space', repeat: false })).toEqual({ type: 'play-pause' });
+  });
+
+  it('resolves Escape to escape action', () => {
+    expect(resolveKeyboardAction({ code: 'Escape', key: 'Escape', repeat: false })).toEqual({
+      type: 'escape'
+    });
+  });
+
+  it('resolves ArrowLeft and ArrowRight to seek actions with shiftKey support', () => {
+    expect(resolveKeyboardAction({ code: 'ArrowLeft', repeat: false })).toEqual({
+      type: 'seek',
+      delta: -5
+    });
+    expect(resolveKeyboardAction({ code: 'ArrowLeft', shiftKey: true, repeat: false })).toEqual({
+      type: 'seek',
+      delta: -15
+    });
+    expect(resolveKeyboardAction({ code: 'ArrowRight', repeat: false })).toEqual({
+      type: 'seek',
+      delta: 5
+    });
+    expect(resolveKeyboardAction({ code: 'ArrowRight', shiftKey: true, repeat: false })).toEqual({
+      type: 'seek',
+      delta: 15
+    });
+  });
+
+  it('resolves Home or 0 to rewind to 0', () => {
+    expect(resolveKeyboardAction({ code: 'Home', repeat: false })).toEqual({
+      type: 'seek-to',
+      position: 0
+    });
+    expect(resolveKeyboardAction({ code: 'Digit0', key: '0', repeat: false })).toEqual({
+      type: 'seek-to',
+      position: 0
+    });
+  });
+
+  it('resolves brackets to transpose actions', () => {
+    expect(resolveKeyboardAction({ code: 'BracketLeft', key: '[', repeat: false })).toEqual({
+      type: 'transpose',
+      delta: -1
+    });
+    expect(resolveKeyboardAction({ code: 'BracketRight', key: ']', repeat: false })).toEqual({
+      type: 'transpose',
+      delta: 1
+    });
+  });
+
+  it('resolves L key to loop-toggle action', () => {
+    expect(resolveKeyboardAction({ code: 'KeyL', key: 'l', repeat: false })).toEqual({
+      type: 'loop-toggle'
+    });
+    expect(resolveKeyboardAction({ key: 'L', repeat: false })).toEqual({
+      type: 'loop-toggle'
+    });
+  });
+
+  it('returns null when repeating or targeting editable fields', () => {
+    expect(resolveKeyboardAction({ code: 'Space', repeat: true })).toBeNull();
+    expect(
+      resolveKeyboardAction({
+        code: 'Space',
+        repeat: false,
+        target: { tagName: 'INPUT' }
+      })
+    ).toBeNull();
   });
 });

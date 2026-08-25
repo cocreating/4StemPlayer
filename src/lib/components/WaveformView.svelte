@@ -25,16 +25,29 @@
   }: Props = $props();
 
   import type { Action } from 'svelte/action';
+  import { SvelteMap } from 'svelte/reactivity';
 
-  let container = $state<HTMLDivElement | undefined>(undefined);
   let localError = $state('');
 
-  async function loadPeaks(nextPeaksUrl: string | undefined) {
-    if (!nextPeaksUrl) return undefined;
-    const response = await fetch(nextPeaksUrl);
-    if (!response.ok) throw new Error(`${nextPeaksUrl}: ${response.status} ${response.statusText}`);
-    const payload = (await response.json()) as { peaks?: number[] };
-    return payload.peaks ? [payload.peaks] : undefined;
+  const peaksCache = new SvelteMap<string, Promise<number[][] | undefined>>();
+
+  function loadPeaks(nextPeaksUrl: string | undefined): Promise<number[][] | undefined> {
+    if (!nextPeaksUrl) return Promise.resolve(undefined);
+    const cached = peaksCache.get(nextPeaksUrl);
+    if (cached) return cached;
+
+    const promise = (async () => {
+      const response = await fetch(nextPeaksUrl);
+      if (!response.ok) throw new Error(`${nextPeaksUrl}: ${response.status} ${response.statusText}`);
+      const payload = (await response.json()) as { peaks?: number[] };
+      return payload.peaks ? [payload.peaks] : undefined;
+    })().catch((err) => {
+      peaksCache.delete(nextPeaksUrl);
+      throw err;
+    });
+
+    peaksCache.set(nextPeaksUrl, promise);
+    return promise;
   }
 
   interface WaveformParams {

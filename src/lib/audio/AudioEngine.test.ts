@@ -797,4 +797,28 @@ describe('AudioEngine', () => {
     expect(engine.getSnapshot().playing).toBe(false);
     expect(liveSources).toHaveLength(0);
   });
+
+  it('manages loop range and exposes it in the snapshot', async () => {
+    const { engine } = makeEngine();
+    await engine.loadSong({
+      id: 'glorybox',
+      title: 'Glory Box',
+      stems: stemNames.map((name) => ({ name, label: name, url: `${name}.mp3` }))
+    });
+
+    expect(engine.getSnapshot().loop).toBeNull();
+
+    engine.setLoop(10, 25);
+    expect(engine.getSnapshot().loop).toEqual({ start: 10, end: 24 }); // clamped to duration=24
+
+    engine.clearLoop();
+    expect(engine.getSnapshot().loop).toBeNull();
+
+    engine.toggleLoopRange(5, 15);
+    expect(engine.getSnapshot().loop).toEqual({ start: 5, end: 15 });
+
+    // Toggling the same range clears it
+    engine.toggleLoopRange(5, 15);
+    expect(engine.getSnapshot().loop).toBeNull();
+  });
 });

@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest';
 import {
   detectLowMemoryDefault,
   readLowMemoryPreference,
+  readSongMixPreferences,
   readStoredTheme,
   resolveInitialSongId,
   resolveLowMemoryActive,
   saveLowMemoryPreference,
   saveSelectedSongId,
+  saveSongMixPreferences,
   saveThemePreference
 } from './preferences';
 
@@ -54,6 +56,34 @@ describe('song preferences', () => {
     saveSelectedSongId(storage, 'deleted-song');
 
     expect(resolveInitialSongId(songs, storage)).toBe('bambola');
+  });
+});
+
+describe('song mix preferences', () => {
+  it('returns null when no mix preferences are saved for a song', () => {
+    const storage = new MemoryStorage();
+    expect(readSongMixPreferences(storage, 'bambola')).toBeNull();
+    expect(readSongMixPreferences(undefined, 'bambola')).toBeNull();
+    expect(readSongMixPreferences(storage, '')).toBeNull();
+  });
+
+  it('saves and reads custom stem volume, mute, and solo states per song', () => {
+    const storage = new MemoryStorage();
+    const customMix = {
+      vocals: { volume: 0.8, muted: true },
+      drums: { volume: 1, solo: true },
+      bass: { volume: 0.6 }
+    };
+
+    saveSongMixPreferences(storage, 'bambola', customMix);
+    expect(readSongMixPreferences(storage, 'bambola')).toEqual(customMix);
+    expect(readSongMixPreferences(storage, 'glory-box')).toBeNull();
+  });
+
+  it('gracefully handles invalid JSON in storage', () => {
+    const storage = new MemoryStorage();
+    storage.setItem('4stem-player:mix:bambola', 'invalid json string');
+    expect(readSongMixPreferences(storage, 'bambola')).toBeNull();
   });
 });
 

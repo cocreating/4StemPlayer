@@ -28,7 +28,7 @@
 </script>
 
 <section class="stem-mixer" aria-label="Stem mixer">
-  {#each stemNames as stemName}
+  {#each stemNames as stemName (stemName)}
     {@const stem = snapshot.stems[stemName]}
     {#if stem}
       <StemRow
